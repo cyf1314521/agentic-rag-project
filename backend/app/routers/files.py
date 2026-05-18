@@ -1,0 +1,118 @@
+"""
+PDF 上传与文件管理 API。
+
+入库流程：校验 → SHA256 去重 → 落盘 → Docling 解析 → 父子分块 → 写入 Milvus → 记录 files 表
+"""
+
+import uuid
+import hashlib
+import logging
+import shutil
+from pathlib import Path
+
+from fastapi import APIRouter, UploadFile, File, HTTPException
+import aiofiles
+
+from config import Config
+from app.dependencies import get_pdf_parser, get_rag_integration, get_retriever
+from app.store import add_file, list_files, delete_file_record
+
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/api/files", tags=["files"])
+
+
+@router.post("/upload")
+async def upload_files(files: list[UploadFile] = File(...)):
+    """
+    POST /api/files/upload — 批量上传 PDF（multipart）。
+
+    单文件可能返回 status: ok | duplicate | error
+    """
+    upload_dir = Path(Config.UPLOAD_DIR)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    max_bytes = Config.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+    results = []
+
+    for f in files:
+        if not f.filename or not f.filename.lower().endswith(".pdf"):
+            results.append({"filename": f.filename, "status": "error", "detail": "Only PDF files are supported"})
+            continue
+
+        content = await f.read()
+        if len(content) > max_bytes:
+            results.append({"filename": f.filename, "status": "error", "detail": f"File exceeds {Config.MAX_UPLOAD_SIZE_MB}MB limit"})
+            continue
+
+        content_hash = hashlib.sha256(content).hexdigest()
+
+        # 通过 Milvus 元数据 content_hash 判断是否已索引相同内容
+        retriever = get_retriever()
+        updater = retriever.get_updater()
+        existing_paper = updater.has_content_hash(content_hash)
+        if existing_paper:
+            results.append({"filename": f.filename, "status": "duplicate", "detail": f"Same content as paper '{existing_paper}'"})
+            continue
+
+        file_id = str(uuid.uuid4())
+        paper_id = Path(f.filename).stem  # 用文件名（无扩展名）作为论文 ID
+        save_path = upload_dir / f"{file_id}.pdf"
+
+        async with aiofiles.open(save_path, "wb") as out:
+            await out.write(content)
+
+        try:
+            parser = get_pdf_parser()
+            nodes = parser.parse(str(save_path), paper_id)
+
+            integration = get_rag_integration()
+            docs = integration.nodes_to_documents(nodes, content_hash=content_hash)
+            parents, children = integration.create_chunks(docs)
+
+            updater.parent_store.add_documents(parents)
+            updater.child_store.add_documents(children)
+
+            record = await add_file(
+                file_id=file_id,
+                filename=f.filename,
+                paper_id=paper_id,
+                size_bytes=len(content),
+                page_count=max((n.page_num for n in nodes), default=0),
+                chunk_count=len(children),
+            )
+            results.append({"filename": f.filename, "status": "ok", **record})
+        except Exception as e:
+            logger.exception(f"Failed to process {f.filename}")
+            save_path.unlink(missing_ok=True)
+            results.append({"filename": f.filename, "status": "error", "detail": str(e)})
+
+    return {"files": results}
+
+
+@router.get("")
+async def get_files():
+    """GET /api/files — 已上传文件列表。"""
+    return await list_files()
+
+
+@router.delete("/{file_id}")
+async def remove_file(file_id: str):
+    """
+    DELETE /api/files/{file_id} — 删除向量、磁盘 PDF、图表目录及 DB 记录。
+    """
+    record = await delete_file_record(file_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    retriever = get_retriever()
+    updater = retriever.get_updater()
+    updater.delete_paper(record["paper_id"])
+
+    save_path = Path(Config.UPLOAD_DIR) / f"{file_id}.pdf"
+    save_path.unlink(missing_ok=True)
+
+    figures_dir = Path("data/figures") / record["paper_id"]
+    if figures_dir.exists():
+        shutil.rmtree(figures_dir)
+
+    return {"ok": True, "paper_id": record["paper_id"]}
