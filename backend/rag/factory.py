@@ -10,8 +10,10 @@ from langchain_milvus import Milvus, BM25BuiltInFunction
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.messages import HumanMessage
 from langchain_core.language_models import BaseChatModel
-from pymilvus import connections
+from pymilvus import MilvusClient, connections
 from sentence_transformers import CrossEncoder
+
+from config import Config
 
 
 def ensure_milvus_orm_connection(store: Milvus) -> None:
@@ -32,7 +34,10 @@ class EmbeddingService:
     @classmethod
     def get_embeddings(cls, model_name: str) -> HuggingFaceEmbeddings:
         if model_name not in cls._instances:
-            cls._instances[model_name] = HuggingFaceEmbeddings(model_name=model_name)
+            kwargs = {}
+            if Config.HF_LOCAL_FILES_ONLY:
+                kwargs["model_kwargs"] = {"local_files_only": True}
+            cls._instances[model_name] = HuggingFaceEmbeddings(model_name=model_name, **kwargs)
         return cls._instances[model_name]
 
 
@@ -44,7 +49,10 @@ class RerankerService:
     @classmethod
     def get_reranker(cls, model_name: str) -> CrossEncoder:
         if model_name not in cls._instances:
-            cls._instances[model_name] = CrossEncoder(model_name)
+            cls._instances[model_name] = CrossEncoder(
+                model_name,
+                local_files_only=Config.HF_LOCAL_FILES_ONLY,
+            )
         return cls._instances[model_name]
 
 
@@ -60,13 +68,20 @@ class MilvusStoreFactory:
     ) -> Milvus:
         bm25 = BM25BuiltInFunction(input_field_names="text", output_field_names="sparse")
         suffix = "children" if is_child else "parents"
+        connection_args = {"uri": milvus_uri}
+
+        # Milvus() 在 __init__ 里会访问 ORM Collection，须先于构造注册 pymilvus ORM 连接
+        probe = MilvusClient(**connection_args)
+        alias = probe._using
+        if not connections.has_connection(alias):
+            connections.connect(alias=alias, **connection_args)
 
         store = Milvus(
             embeddings,
             builtin_function=bm25,
             vector_field=["dense", "sparse"],
             collection_name=f"{collection_name}_{suffix}",
-            connection_args={"uri": milvus_uri},
+            connection_args=connection_args,
         )
         ensure_milvus_orm_connection(store)
         return store

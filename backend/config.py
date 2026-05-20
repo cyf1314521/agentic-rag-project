@@ -21,6 +21,8 @@ class Config:
     # ---------- 嵌入与重排序模型（HuggingFace 路径或模型 ID）----------
     EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
     RERANKER_MODEL = os.getenv("RERANKER_MODEL", "BAAI/bge-reranker-v2-m3")
+    # 已缓存模型时仅读本地，避免启动反复访问 huggingface.co 超时（WinError 10060）
+    HF_LOCAL_FILES_ONLY = os.getenv("HF_LOCAL_FILES_ONLY", "true").lower() == "true"
 
     # ---------- 检索超参数 ----------
     FETCH_K = int(os.getenv("FETCH_K", "20"))   # 重排前从向量库拉取的候选条数
@@ -37,6 +39,7 @@ class Config:
     LLM_API_KEY = os.getenv("LLM_API_KEY", "ollama")
     LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.7"))
     LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
+    LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "180"))  # 单次 LLM 请求超时（秒），Ollama 本地模型宜设大一些
     MAX_RETRIES = int(os.getenv("MAX_RETRIES", "2"))  # 子 Agent 反思不足时的最大重试次数
 
     # ---------- 视觉语言模型 VLM（图表理解，可选）----------

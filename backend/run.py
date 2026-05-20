@@ -8,9 +8,16 @@ Windows + Python 3.13 下 uvicorn.run() 仍会使用 ProactorEventLoop，
   .\\.venv\\Scripts\\python.exe run.py
 """
 
+import os
 import sys
 import asyncio
 import selectors
+
+# 本地 Ollama 勿走系统 HTTP 代理，否则易出现 502 Bad Gateway
+os.environ.setdefault("NO_PROXY", "localhost,127.0.0.1,::1")
+os.environ.setdefault("no_proxy", "localhost,127.0.0.1,::1")
+# 嵌入/重排模型已下载过时，避免启动卡 huggingface.co（WinError 10060）
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
 
 import uvicorn
 

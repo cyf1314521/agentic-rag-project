@@ -22,6 +22,9 @@ from .prompts import QUERY_ANALYZER, QUERY_CLASSIFIER, SYNTHESIZER, GENERATOR, R
 
 logger = logging.getLogger(__name__)
 
+# 送入本地 LLM 的检索上下文上限，避免 Ollama 因 prompt 过长返回 502
+MAX_GENERATE_CONTEXT_CHARS = 12_000
+
 # 保留最近 N 条消息原文；更早的由 summarize 压缩进 summary
 WINDOW_SIZE = 6
 
@@ -346,6 +349,8 @@ async def generate(state: SubAgentState, llm: BaseChatModel, vision_service=None
 
     # 给每段上下文编号 [1]、[2]...，与 GENERATOR 提示里「用 [i] 引用」一致
     context = "\n\n".join(f"[{i}] {d}" for i, d in enumerate(documents, 1))
+    if len(context) > MAX_GENERATE_CONTEXT_CHARS:
+        context = context[:MAX_GENERATE_CONTEXT_CHARS] + "\n\n[Context truncated due to length limit.]"
 
     resp = await llm.ainvoke([
         SystemMessage(content=GENERATOR),  # 系统提示：仅依据上下文、必须引用、学术语气等

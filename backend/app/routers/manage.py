@@ -80,8 +80,8 @@ async def health():
         from app.dependencies import get_llm
         llm = get_llm()
         if llm:
-            resp = llm.invoke("ping")
-            status["llm"] = bool(resp.content)
+            resp = llm.invoke("Reply with exactly one word: ok")
+            status["llm"] = bool((resp.content or "").strip())
     except Exception:
         pass
 

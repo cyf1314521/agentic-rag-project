@@ -13,9 +13,11 @@ if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 import psycopg
 from psycopg_pool import AsyncConnectionPool
 from fastapi import FastAPI
@@ -29,6 +31,30 @@ from rag.integration import PDFParser, RAGIntegration
 from app.store import init_store
 
 logger = logging.getLogger(__name__)
+
+
+def _build_llm() -> ChatOpenAI:
+    """创建主 LLM；本地 Ollama 时绕过系统 HTTP 代理，避免对 localhost:11434 返回 502。"""
+    os.environ.setdefault("NO_PROXY", "localhost,127.0.0.1,::1")
+    os.environ.setdefault("no_proxy", "localhost,127.0.0.1,::1")
+
+    timeout = float(Config.LLM_TIMEOUT)
+    llm_kwargs: dict = {
+        "base_url": Config.LLM_BASE_URL,
+        "model": Config.LLM_MODEL,
+        "api_key": Config.LLM_API_KEY or "ollama",
+        "temperature": Config.LLM_TEMPERATURE,
+        "max_tokens": Config.LLM_MAX_TOKENS,
+        "timeout": Config.LLM_TIMEOUT,
+        "max_retries": 1,
+    }
+    base = (Config.LLM_BASE_URL or "").lower()
+    # 127.0.0.1 比 localhost 更不易被系统代理劫持
+    if "11434" in base or "127.0.0.1" in base or "localhost" in base:
+        llm_kwargs["extra_body"] = {"think": False}
+        llm_kwargs["http_client"] = httpx.Client(trust_env=False, timeout=timeout)
+        llm_kwargs["http_async_client"] = httpx.AsyncClient(trust_env=False, timeout=timeout)
+    return ChatOpenAI(**llm_kwargs)
 
 
 async def _ensure_postgres_db():
@@ -141,13 +167,7 @@ async def lifespan(app: FastAPI):
     await pool.open()
     await init_store(pool)
 
-    _llm = ChatOpenAI(
-        base_url=Config.LLM_BASE_URL,
-        model=Config.LLM_MODEL,
-        api_key=Config.LLM_API_KEY,
-        temperature=Config.LLM_TEMPERATURE,
-        max_tokens=Config.LLM_MAX_TOKENS,
-    )
+    _llm = _build_llm()
 
     _retriever = Retriever(
         embedding_model=Config.EMBEDDING_MODEL,
