@@ -7,6 +7,13 @@ FastAPI 应用入口。
 3. 若存在 frontend/dist，则挂载静态资源实现前后端同端口部署
 """
 
+import sys
+import asyncio
+
+# Windows 默认 ProactorEventLoop 与 psycopg 异步不兼容，必须在创建事件循环前切换
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 import logging
 from pathlib import Path
 
@@ -50,5 +57,5 @@ if dist.is_dir():
 
 
 if __name__ == "__main__":
-    # 直接 python -m app.main 时以热重载方式启动
-    uvicorn.run("app.main:app", host=Config.HOST, port=Config.PORT, reload=True)
+    # Windows 请优先使用 backend/run.py 启动
+    uvicorn.run("app.main:app", host=Config.HOST, port=Config.PORT, reload=False)

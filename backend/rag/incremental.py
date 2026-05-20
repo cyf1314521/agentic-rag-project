@@ -8,6 +8,8 @@ from typing import List, Optional
 from langchain_core.documents import Document
 from langchain_milvus import Milvus
 
+from .factory import ensure_milvus_orm_connection
+
 
 class IncrementalUpdater:
     """对父子两个 Milvus collection 执行按论文维度的增删改。"""
@@ -16,8 +18,13 @@ class IncrementalUpdater:
         self.parent_store = parent_store
         self.child_store = child_store
 
+    def _ensure_connections(self) -> None:
+        ensure_milvus_orm_connection(self.parent_store)
+        ensure_milvus_orm_connection(self.child_store)
+
     def delete_paper(self, paper_id: str) -> bool:
         """删除指定 paper_id 在 parent/child 集合中的全部 chunk。"""
+        self._ensure_connections()
         try:
             expr = f'paper_id == "{paper_id.replace(chr(34), "")}"'
             self.parent_store.delete(expr=expr)
@@ -33,6 +40,7 @@ class IncrementalUpdater:
         Returns:
             已存在的 paper_id，或 None
         """
+        self._ensure_connections()
         try:
             col = self.child_store.col
             if col is None:
@@ -57,6 +65,7 @@ class IncrementalUpdater:
     ) -> bool:
         """先删后插，实现单篇论文的完整替换。"""
         self.delete_paper(paper_id)
+        self._ensure_connections()
         try:
             self.parent_store.add_documents(parents)
             self.child_store.add_documents(children)

@@ -69,6 +69,7 @@ async def upload_files(files: list[UploadFile] = File(...)):
             docs = integration.nodes_to_documents(nodes, content_hash=content_hash)
             parents, children = integration.create_chunks(docs)
 
+            updater._ensure_connections()
             updater.parent_store.add_documents(parents)
             updater.child_store.add_documents(children)
 

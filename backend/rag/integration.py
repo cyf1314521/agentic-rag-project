@@ -671,6 +671,8 @@ class RAGIntegration:
         bm25 = BM25BuiltInFunction(input_field_names="text", output_field_names="sparse")
         
         try:
+            from .factory import ensure_milvus_orm_connection
+
             child_store = Milvus(
                 embedding_function=self.embeddings,
                 builtin_function=bm25,
@@ -678,6 +680,7 @@ class RAGIntegration:
                 collection_name=f"{self.collection_name}_children",
                 connection_args={"uri": self.milvus_uri},
             )
+            ensure_milvus_orm_connection(child_store)
             child_store.add_documents(children)
 
             parent_store = Milvus(
@@ -687,6 +690,7 @@ class RAGIntegration:
                 collection_name=f"{self.collection_name}_parents",
                 connection_args={"uri": self.milvus_uri},
             )
+            ensure_milvus_orm_connection(parent_store)
             parent_store.add_documents(parents)
             return True
         except Exception as e:

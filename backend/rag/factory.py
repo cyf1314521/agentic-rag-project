@@ -10,7 +10,18 @@ from langchain_milvus import Milvus, BM25BuiltInFunction
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.messages import HumanMessage
 from langchain_core.language_models import BaseChatModel
+from pymilvus import connections
 from sentence_transformers import CrossEncoder
+
+
+def ensure_milvus_orm_connection(store: Milvus) -> None:
+    """
+    langchain-milvus 用 MilvusClient 建连，但 add_documents 内部仍走 ORM Collection API。
+    pymilvus 2.6+ 不会自动注册 ORM alias，需显式 connect，否则会 ConnectionNotExistException。
+    """
+    alias = store.alias
+    if not connections.has_connection(alias):
+        connections.connect(alias=alias, **store._connection_args)
 
 
 class EmbeddingService:
@@ -50,13 +61,15 @@ class MilvusStoreFactory:
         bm25 = BM25BuiltInFunction(input_field_names="text", output_field_names="sparse")
         suffix = "children" if is_child else "parents"
 
-        return Milvus(
+        store = Milvus(
             embeddings,
             builtin_function=bm25,
             vector_field=["dense", "sparse"],
             collection_name=f"{collection_name}_{suffix}",
             connection_args={"uri": milvus_uri},
         )
+        ensure_milvus_orm_connection(store)
+        return store
 
 
 class VisionService:

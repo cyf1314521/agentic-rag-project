@@ -295,6 +295,15 @@ For development (hot reload):
 make dev                                # backend :8000 + frontend dev server :5173
 ```
 
+> **Windows (local Python):** Do not use `python -m uvicorn` — it uses `ProactorEventLoop`, which breaks async PostgreSQL (`psycopg`). Start the backend with:
+>
+> ```powershell
+> cd backend
+> .\.venv\Scripts\python.exe run.py
+> ```
+>
+> Or double-click `backend/start-backend.bat`. First startup downloads embedding/reranker models from Hugging Face (may take several minutes).
+
 ### Use
 
 1. Open http://localhost:8000 in your browser

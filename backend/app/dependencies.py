@@ -5,6 +5,13 @@
 对外提供 get_llm / get_retriever 等访问器，供路由与 Agent 图构建使用。
 """
 
+import sys
+import asyncio
+
+# Windows：须在导入 psycopg 之前设置（若仍用 uvicorn 命令行启动，请改用 backend/run.py）
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -122,9 +129,15 @@ async def lifespan(app: FastAPI):
 
     logger.info("Starting up — loading models …")
 
+    if sys.platform == "win32" and type(asyncio.get_running_loop()).__name__ == "ProactorEventLoop":
+        raise RuntimeError(
+            "Windows 上 psycopg 异步需要 SelectorEventLoop。"
+            "请勿使用 `python -m uvicorn`，请改用: .\\.venv\\Scripts\\python.exe run.py"
+        )
+
     await _ensure_postgres_db()
 
-    pool = AsyncConnectionPool(Config.POSTGRES_URI, min_size=2, max_size=10)
+    pool = AsyncConnectionPool(Config.POSTGRES_URI, min_size=2, max_size=10, open=False)
     await pool.open()
     await init_store(pool)
 
