@@ -99,7 +99,7 @@ This project is **beginner-friendly** and well-suited for anyone looking to lear
 | **Memory** | Sliding window + LLM summary compression for multi-turn context |
 | **Streaming** | SSE real-time streamed responses |
 | **Citations** | Auto-generated source references (paper, section, page) |
-| **Evaluation** | Built-in RAGAS metrics: Faithfulness, Relevancy, Precision, Correctness |
+| **Evaluation** | Scope regression (`run_scope_eval.py`); optional retrieval metrics (`eval_retrieval.py`) |
 
 ---
 
@@ -148,8 +148,11 @@ scholar-rag/
 │   │
 │   ├── eval/                         # Evaluation system
 │   │   ├── eval_retrieval.py         # Retrieval evaluation: Recall@k, Precision@k, MRR, MAP
-│   │   ├── eval_generation.py        # Generation evaluation: RAGAS metrics (Faithfulness / AnswerRelevancy / ContextPrecision / FactualCorrectness), end-to-end agent run and CSV report output
+│   │   ├── fixtures/                 # Scope eval dataset (scope_eval_dataset.json)
 │   │   └── benchmark/                # Evaluation benchmark datasets (.gitkeep)
+│   │
+│   ├── scripts/
+│   │   └── run_scope_eval.py         # Session-scope regression (must_contain + citation paper_id)
 │   │
 │   ├── test/                         # Tests
 │   │   ├── test_agent.py             # End-to-end Agent test: initialize LLM + Retriever + Graph, run multi-turn conversation
@@ -336,8 +339,8 @@ cd backend
 # Retrieval: Recall@k, Precision@k, MRR, MAP
 python eval/eval_retrieval.py
 
-# Generation: RAGAS (Faithfulness, Relevancy, Precision, Correctness)
-python eval/eval_generation.py
+# Session scope (paper_id filter): must_contain + citation scope
+python scripts/run_scope_eval.py
 ```
 
 ---
@@ -513,11 +516,10 @@ VLM descriptions are appended to the document context with a `[Figure Analysis]`
 <details>
   <summary>9. Evaluation System (click me)</summary>
 
-**RAGAS Generation Quality Evaluation (`backend/eval/eval_generation.py`):**
+**Session scope evaluation (`backend/scripts/run_scope_eval.py`):**
 
-- Evaluation metrics: `Faithfulness`, `AnswerRelevancy`, `ContextPrecision`, `FactualCorrectness`.
-- Uses `LangchainLLMWrapper` and `LangchainEmbeddingsWrapper` to adapt evaluators.
-- End-to-end evaluation: runs the complete agent graph, collects answers and context, and outputs CSV reports.
+- Dataset: `backend/eval/fixtures/scope_eval_dataset.json`.
+- Runs the same agent graph as production; checks `must_contain` tokens and citation `paper_id` scope.
 
 **Custom Retrieval Evaluation (`backend/eval/eval_retrieval.py`):**
 

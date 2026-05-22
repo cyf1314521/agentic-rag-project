@@ -1,0 +1,10 @@
+# GPU acceleration for retrieval embeddings/reranker (NVIDIA CUDA 12.4, Python 3.13)
+# Install after requirements.txt:
+#   pip uninstall -y torch
+#   pip install -r requirements-gpu.txt
+#
+# Verify: python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+
+--index-url https://download.pytorch.org/whl/cu124
+torch>=2.6.0
+torchvision>=0.21.0

@@ -158,7 +158,16 @@ export default function App() {
                   <ChevronLeft size={14} className="text-gray-400" />
                 </button>
               </div>
-              {panel === 'upload' && <FileUpload onUploaded={loadSessions} />}
+              {panel === 'upload' && (
+                <FileUpload
+                  sessionId={currentId}
+                  onSessionCreated={(id) => {
+                    setCurrentId(id);
+                    loadSessions();
+                  }}
+                  onUploaded={loadSessions}
+                />
+              )}
               {panel === 'settings' && <SettingsPanel onCollectionCleared={loadSessions} />}
             </div>
           )}

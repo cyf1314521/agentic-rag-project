@@ -6,15 +6,30 @@
 """
 
 import logging
+from typing import cast
 
 from fastapi import APIRouter, HTTPException
+from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import HumanMessage
+from pydantic import BaseModel, Field
 
-from app.store import list_sessions, get_session, delete_session
+from app.store import (
+    list_sessions,
+    get_session,
+    delete_session,
+    get_session_paper_ids,
+    create_session,
+    link_session_paper,
+)
 from app.dependencies import get_checkpointer
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
+
+
+class LinkPaperRequest(BaseModel):
+    """POST /api/sessions/{id}/papers — 将已入库 paper 绑定到会话 scope（评测/联调）。"""
+    paper_id: str = Field(..., min_length=1)
 
 
 @router.get("")
@@ -32,6 +47,30 @@ async def get_session_detail(session_id: str):
     return session
 
 
+@router.post("/{session_id}/papers")
+async def link_paper_to_session(session_id: str, body: LinkPaperRequest):
+    """
+    绑定 paper_id 到会话（与上传 PDF 后的 link_session_paper 相同）。
+
+    用于评测脚本：Milvus 中已有 eval_* 文档时，无需重复上传即可启用 session scope。
+    """
+    if not await get_session(session_id):
+        await create_session(session_id)
+    await link_session_paper(session_id, body.paper_id)
+    paper_ids = await get_session_paper_ids(session_id)
+    return {"session_id": session_id, "paper_ids": paper_ids}
+
+
+@router.get("/{session_id}/papers")
+async def get_session_papers(session_id: str):
+    """GET /api/sessions/{id}/papers — 本会话绑定的 paper_id（检索 scope）。"""
+    session = await get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    paper_ids = await get_session_paper_ids(session_id)
+    return {"session_id": session_id, "paper_ids": paper_ids}
+
+
 @router.get("/{session_id}/history")
 async def get_history(session_id: str):
     """
@@ -43,7 +82,7 @@ async def get_history(session_id: str):
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    config = {"configurable": {"thread_id": session_id}}
+    config = cast(RunnableConfig, {"configurable": {"thread_id": session_id}})
     checkpointer = get_checkpointer()
     try:
         checkpoint = await checkpointer.aget(config)

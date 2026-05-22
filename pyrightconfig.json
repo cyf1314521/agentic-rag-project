@@ -1,0 +1,24 @@
+{
+  "venvPath": "backend",
+  "venv": ".venv",
+  "extraPaths": ["backend"],
+  "include": [
+    "backend/app",
+    "backend/agent",
+    "backend/rag",
+    "backend/eval",
+    "backend/scripts",
+    "backend/test",
+    "backend/config.py",
+    "backend/run.py"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/.venv",
+    "frontend",
+    "backend/uploads",
+    "backend/data"
+  ],
+  "pythonVersion": "3.13",
+  "typeCheckingMode": "basic"
+}

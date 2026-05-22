@@ -17,9 +17,12 @@ from pydantic import BaseModel
 
 from config import Config
 from app.dependencies import get_llm, get_retriever_tool, get_checkpointer
-from app.store import create_session, get_session, update_session
+from app.store import create_session, get_session, update_session, get_session_paper_ids
 from agent.graph import build_graph
+from agent.nodes import sanitize_query
+from agent.states import fresh_turn_state
 from rag.citation import CitationExtractor
+from rag.chat_trace import start_trace, finish_trace, get_trace
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -50,7 +53,26 @@ async def _stream_response(graph, query: str, session_id: str) -> AsyncGenerator
     仅在 synthesize 节点累积并推送 answer 事件。
     """
     config = {"configurable": {"thread_id": session_id}}
-    graph_input = {"query": query}
+    trace_id = uuid.uuid4().hex[:12]
+    query = sanitize_query(query)
+    paper_ids = await get_session_paper_ids(session_id)
+    if paper_ids:
+        logger.info("Session scope: %d paper(s) %s", len(paper_ids), paper_ids)
+        if len(paper_ids) > 1:
+            logger.warning(
+                "Session %s links %d papers — answers may mix corpora. "
+                "For single-paper Q&A, create a new chat and upload one PDF.",
+                session_id,
+                len(paper_ids),
+            )
+    else:
+        logger.warning(
+            "Session %s has no linked papers — retrieval uses full corpus. "
+            "Upload PDFs in this chat to enable scope.",
+            session_id,
+        )
+    graph_input = fresh_turn_state(query, trace_id, paper_ids=paper_ids)
+    start_trace(session_id, query, trace_id=trace_id)
 
     yield json.dumps({"type": "session_id", "data": session_id})
     yield json.dumps({"type": "status", "data": "analyzing"})
@@ -109,7 +131,12 @@ async def _stream_response(graph, query: str, session_id: str) -> AsyncGenerator
 
     except Exception as e:
         logger.exception("Chat error")
+        tr = get_trace(trace_id)
+        if tr:
+            tr.error(str(e))
         yield json.dumps({"type": "error", "data": str(e)})
+    finally:
+        finish_trace(trace_id)
 
 
 @router.post("/chat")

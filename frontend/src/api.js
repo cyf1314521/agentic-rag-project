@@ -19,9 +19,10 @@ export async function deleteSession(sessionId) {
   return res.json();
 }
 
-export async function uploadFiles(files, onProgress) {
+export async function uploadFiles(files, sessionId = null) {
   const form = new FormData();
   for (const f of files) form.append('files', f);
+  if (sessionId) form.append('session_id', sessionId);
   const res = await fetch(`${BASE}/files/upload`, { method: 'POST', body: form });
   return res.json();
 }

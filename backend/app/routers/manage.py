@@ -15,6 +15,7 @@ from pymilvus import connections, utility
 from config import Config
 from app.store import clear_all_files
 from app.dependencies import get_retriever
+from app.llm_utils import message_content_to_str
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["management"])
@@ -32,7 +33,7 @@ async def clear_collection():
         for suffix in ("_children", "_parents"):
             name = f"{Config.COLLECTION_NAME}{suffix}"
             if utility.has_collection(name, using=alias):
-                utility.drop_collection(name, using=alias)
+                _ = utility.drop_collection(name, using=alias)  # type: ignore[func-returns-value]
                 dropped.append(name)
         connections.disconnect(alias)
 
@@ -81,7 +82,7 @@ async def health():
         llm = get_llm()
         if llm:
             resp = llm.invoke("Reply with exactly one word: ok")
-            status["llm"] = bool((resp.content or "").strip())
+            status["llm"] = bool(message_content_to_str(resp.content).strip())
     except Exception:
         pass
 

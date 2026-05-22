@@ -15,11 +15,14 @@ if sys.platform == "win32":
 import logging
 import os
 from contextlib import asynccontextmanager
+from typing import Any, cast
 from pathlib import Path
 
 import httpx
 import psycopg
 from psycopg_pool import AsyncConnectionPool
+
+from app.db import create_database, execute
 from fastapi import FastAPI
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -27,6 +30,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from config import Config
 from rag.retrieval import Retriever
 from rag.citation import CitationExtractor
+from rag.factory import resolve_torch_device
 from rag.integration import PDFParser, RAGIntegration
 from app.store import init_store
 
@@ -45,11 +49,33 @@ def _build_llm() -> ChatOpenAI:
         "api_key": Config.LLM_API_KEY or "ollama",
         "temperature": Config.LLM_TEMPERATURE,
         "max_tokens": Config.LLM_MAX_TOKENS,
-        "timeout": Config.LLM_TIMEOUT,
+        "timeout": timeout,
         "max_retries": 1,
     }
     base = (Config.LLM_BASE_URL or "").lower()
     # 127.0.0.1 比 localhost 更不易被系统代理劫持
+    if "11434" in base or "127.0.0.1" in base or "localhost" in base:
+        llm_kwargs["extra_body"] = {"think": False}
+        llm_kwargs["http_client"] = httpx.Client(trust_env=False, timeout=timeout)
+        llm_kwargs["http_async_client"] = httpx.AsyncClient(trust_env=False, timeout=timeout)
+    return ChatOpenAI(**llm_kwargs)
+
+
+def _build_vlm_llm() -> ChatOpenAI:
+    """创建 VLM（图表理解）；配置与 _build_llm 相同，使用 VLM_* 环境变量。"""
+    os.environ.setdefault("NO_PROXY", "localhost,127.0.0.1,::1")
+    os.environ.setdefault("no_proxy", "localhost,127.0.0.1,::1")
+
+    timeout = float(Config.LLM_TIMEOUT)
+    llm_kwargs: dict = {
+        "base_url": Config.VLM_BASE_URL,
+        "model": Config.VLM_MODEL,
+        "api_key": Config.VLM_API_KEY or "ollama",
+        "temperature": 0,
+        "timeout": timeout,
+        "max_retries": 1,
+    }
+    base = (Config.VLM_BASE_URL or "").lower()
     if "11434" in base or "127.0.0.1" in base or "localhost" in base:
         llm_kwargs["extra_body"] = {"think": False}
         llm_kwargs["http_client"] = httpx.Client(trust_env=False, timeout=timeout)
@@ -71,9 +97,9 @@ async def _ensure_postgres_db():
     try:
         conn = await psycopg.AsyncConnection.connect(base_uri, autocommit=True)
         async with conn:
-            cur = await conn.execute("SELECT 1 FROM pg_database WHERE datname = %s", (db_name,))
+            cur = await execute(conn, "SELECT 1 FROM pg_database WHERE datname = %s", (db_name,))
             if not await cur.fetchone():
-                await conn.execute(f'CREATE DATABASE "{db_name}"')
+                await create_database(conn, db_name)
                 logger.info(f"Created database: {db_name}")
     except Exception as e:
         logger.warning(f"Could not auto-create database: {e}")
@@ -90,7 +116,7 @@ class RetrieverTool:
     def __init__(self, retriever: Retriever):
         self._retriever = retriever
 
-    def invoke(self, query: str, section_type_filter=None):
+    def invoke(self, query: str, section_type_filter=None, paper_id_filter=None):
         """执行一次完整检索管道，返回 Document 列表。"""
         return self._retriever.retrieve(
             query=query,
@@ -101,6 +127,7 @@ class RetrieverTool:
             rrf_k=Config.RRF_K,
             fetch_k=Config.FETCH_K,
             section_type_filter=section_type_filter,
+            paper_id_filter=paper_id_filter,
         )
 
 
@@ -126,6 +153,25 @@ def get_retriever() -> Retriever:
 def get_retriever_tool() -> RetrieverTool:
     """获取供 Agent 图使用的检索工具包装。"""
     return _retriever_tool  # type: ignore
+
+
+def ensure_retriever_tool() -> RetrieverTool:
+    """
+    CLI 脚本在 FastAPI lifespan 外运行时初始化 Retriever（懒加载单例）。
+    run_scope_eval.py、debug 脚本等应使用本函数而非 get_retriever_tool()。
+    """
+    global _retriever, _retriever_tool
+    if _retriever_tool is None:
+        logger.info("Bootstrapping Retriever for standalone script …")
+        _retriever = Retriever(
+            embedding_model=Config.EMBEDDING_MODEL,
+            reranker_model=Config.RERANKER_MODEL,
+            milvus_uri=Config.MILVUS_URI,
+            collection_name=Config.COLLECTION_NAME,
+            enable_cache=Config.ENABLE_CACHE,
+        )
+        _retriever_tool = RetrieverTool(_retriever)
+    return _retriever_tool
 
 
 def get_pdf_parser() -> PDFParser:
@@ -165,9 +211,12 @@ async def lifespan(app: FastAPI):
 
     pool = AsyncConnectionPool(Config.POSTGRES_URI, min_size=2, max_size=10, open=False)
     await pool.open()
-    await init_store(pool)
+    await init_store(cast(Any, pool))
 
     _llm = _build_llm()
+
+    embed_device = resolve_torch_device()
+    logger.info("Embedding/reranker device: %s (EMBEDDING_DEVICE=%s)", embed_device, Config.EMBEDDING_DEVICE)
 
     _retriever = Retriever(
         embedding_model=Config.EMBEDDING_MODEL,

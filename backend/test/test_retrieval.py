@@ -99,14 +99,16 @@ def run_test(pdf_path: str):
         log(f"  Query {qi}: {query}")
         log(f"{'='*90}")
 
-        for mode_name, kwargs in [
-            ("hybrid+rerank+parent", dict(rerank=True, expand_parent=True)),
-            ("hybrid only (no rerank, no parent)", dict(rerank=False, expand_parent=False)),
-            ("hybrid+rerank (no parent)", dict(rerank=True, expand_parent=False)),
+        for mode_name, rerank, expand_parent in [
+            ("hybrid+rerank+parent", True, True),
+            ("hybrid only (no rerank, no parent)", False, False),
+            ("hybrid+rerank (no parent)", True, False),
         ]:
             log(f"\n  --- Mode: {mode_name} ---")
             t0 = time.time()
-            results = retriever.retrieve(query, k=5, fetch_k=20, **kwargs)
+            results = retriever.retrieve(
+                query, k=5, fetch_k=20, rerank=rerank, expand_parent=expand_parent
+            )
             elapsed = time.time() - t0
             log(f"  Results: {len(results)} docs ({elapsed:.2f}s)")
 

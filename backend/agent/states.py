@@ -8,9 +8,11 @@ LangGraph 状态定义。
 """
 
 import operator
-from typing import Annotated, TypedDict
+from typing import Annotated, TypedDict, cast
+
 from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
+from langgraph.types import Overwrite
 
 
 class SubAnswer(TypedDict):
@@ -57,9 +59,12 @@ class AgentState(TypedDict):
     """
     messages: Annotated[list[AnyMessage], add_messages]  # 多轮对话历史（Human/AI）
     query: str                    # 当前轮用户问题
+    trace_id: str                 # 可观测日志关联 ID（chat 入口生成）
     query_type: str               # classify 节点输出：experimental_result | method | background | general
+    paper_ids: list[str]         # 本会话检索范围（session_papers）
     summary: str                  # 超长对话的 LLM 摘要
     documents: list[str]          # 预留字段
+    query_complexity: str         # analyze：simple | complex
     sub_queries: list[str]        # analyze 节点分解的子查询列表
     sub_answers: Annotated[list[SubAnswer], merge_sub_answers]  # 各子 Agent 答案
     answer: str                   # synthesize 后的最终回答
@@ -67,12 +72,44 @@ class AgentState(TypedDict):
     synth_messages: list[AnyMessage]  # prepare_synthesis 构建的 LLM 消息列表
 
 
+def fresh_turn_state(
+    query: str,
+    trace_id: str,
+    paper_ids: list[str] | None = None,
+) -> AgentState:
+    """
+    每轮对话/评测的初始主图 state。
+
+    使用 Overwrite 清空带 reducer 的列表字段；LangGraph 输入类型与 TypedDict 不完全一致，故 cast。
+    """
+    return cast(
+        AgentState,
+        {
+            "query": query,
+            "trace_id": trace_id,
+            "paper_ids": paper_ids or [],
+            "messages": [],
+            "summary": "",
+            "query_type": "general",
+            "query_complexity": "simple",
+            "documents": [],
+            "sub_queries": Overwrite([]),
+            "sub_answers": Overwrite([]),
+            "citations": Overwrite([]),
+            "answer": "",
+            "synth_messages": [],
+        },
+    )
+
+
 class SubAgentState(TypedDict):
     """
     子图状态：处理单个子查询的 RAG 循环。
     """
     query: str
+    trace_id: str                 # 继承自主图，用于可观测日志
     query_type: str               # 继承自主图，用于检索 section_type 路由
+    paper_ids: list[str]         # 继承自主图，Milvus paper_id 过滤
     documents: list[str]          # 检索到的上下文（已格式化为带 Source 的字符串）
     answer: str
     citations: list[dict]

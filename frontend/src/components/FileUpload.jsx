@@ -3,7 +3,7 @@ import { useState, useRef } from 'react';
 import { Upload, X, FileText, Loader2 } from 'lucide-react';
 import { uploadFiles } from '../api';
 
-export default function FileUpload({ onUploaded }) {
+export default function FileUpload({ sessionId, onUploaded, onSessionCreated }) {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState([]);
@@ -16,8 +16,9 @@ export default function FileUpload({ onUploaded }) {
     setUploading(true);
     setResults([]);
     try {
-      const res = await uploadFiles(pdfs);
+      const res = await uploadFiles(pdfs, sessionId || null);
       setResults(res.files || []);
+      if (res.session_id && onSessionCreated) onSessionCreated(res.session_id);
       if (onUploaded) onUploaded();
     } catch (err) {
       setResults([{ filename: 'Upload failed', status: 'error', detail: err.message }]);
@@ -58,23 +59,39 @@ export default function FileUpload({ onUploaded }) {
         <p className="text-sm text-gray-500 mt-2">
           {uploading ? 'Processing...' : 'Drop PDF files here or click to browse'}
         </p>
+        {sessionId ? (
+          <p className="text-xs text-gray-400 mt-1">Files are linked to this chat only.</p>
+        ) : (
+          <p className="text-xs text-amber-600 mt-1">Start or select a chat first to scope uploads.</p>
+        )}
       </div>
 
       {results.length > 0 && (
         <div className="mt-3 space-y-1.5">
-          {results.map((r, i) => (
-            <div key={i} className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg ${
-              r.status === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-            }`}>
-              <FileText size={13} />
-              <span className="truncate flex-1">{r.filename}</span>
-              {r.status === 'ok' ? (
-                <span>{r.chunk_count} chunks</span>
-              ) : (
-                <span>{r.detail}</span>
-              )}
+          {results.map((r, i) => {
+            const isOk = r.status === 'ok';
+            const isDup = r.status === 'duplicate';
+            const boxClass = isOk
+              ? 'bg-green-50 text-green-700'
+              : isDup
+                ? 'bg-blue-50 text-blue-800'
+                : 'bg-red-50 text-red-700';
+            return (
+            <div key={i} className={`flex items-start gap-2 text-xs px-3 py-2 rounded-lg ${boxClass}`}>
+              <FileText size={13} className="mt-0.5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium">{r.filename}</div>
+                {isOk && <div>{r.chunk_count} chunks</div>}
+                {isDup && (
+                  <div>
+                    已在库中（{r.paper_id}），已绑定本会话，可直接提问。
+                  </div>
+                )}
+                {!isOk && !isDup && <div>{r.detail}</div>}
+              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

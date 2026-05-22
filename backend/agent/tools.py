@@ -25,8 +25,8 @@ _retriever: Optional[Retriever] = None
 # 异步/多请求场景下传递当前请求的 query_type（由 classify_query 写入）
 _query_type_ctx: ContextVar[str] = ContextVar("query_type", default="general")
 
-# 查询类型 → Milvus section_type 过滤条件（与 nodes.retrieve 中一致）
-_ROUTE_CONFIG: dict[str, list[str] | None] = {
+# 查询类型 → Milvus section_type 过滤（retrieve / paper_retrieval 共用）
+SECTION_TYPE_ROUTE: dict[str, list[str] | None] = {
     "experimental_result": ["experiment"],
     "method": ["method"],
     "background": ["background"],
@@ -63,7 +63,7 @@ def paper_retrieval(query: str) -> str:
     """
     retriever = get_retriever()
     query_type = _query_type_ctx.get()
-    section_type_filter = _ROUTE_CONFIG.get(query_type)
+    section_type_filter = SECTION_TYPE_ROUTE.get(query_type)
 
     docs = retriever.retrieve(
         query=query,
@@ -74,6 +74,7 @@ def paper_retrieval(query: str) -> str:
         rrf_k=Config.RRF_K,
         fetch_k=Config.FETCH_K,
         section_type_filter=section_type_filter,
+        paper_id_filter=None,
     )
 
     if not docs:

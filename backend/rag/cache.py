@@ -6,6 +6,7 @@
 """
 
 import logging
+import threading
 from collections import OrderedDict
 from typing import Optional
 import numpy as np
@@ -38,6 +39,8 @@ class RetrievalCache:
         self.max_size = max_size
         self.threshold = similarity_threshold
         self._store: OrderedDict[str, tuple[np.ndarray, list[Document]]] = OrderedDict()
+        # 并行 sub_agent 会同时 retrieve；保护 OrderedDict 避免迭代时被 put 修改
+        self._lock = threading.Lock()
 
     def _embed(self, query: str) -> np.ndarray:
         vec = self.embeddings.embed_query(query)
@@ -55,24 +58,27 @@ class RetrievalCache:
         return None
 
     def get(self, query: str) -> Optional[list[Document]]:
-        if not self._store:
-            return None
         vec = self._embed(query)
-        match = self._find_best(vec)
-        if match:
-            key, sim = match
-            self._store.move_to_end(key)
-            logger.debug(f"Cache hit (sim={sim:.3f}): {query[:60]}")
-            return self._store[key][1]
+        with self._lock:
+            if not self._store:
+                return None
+            match = self._find_best(vec)
+            if match:
+                key, sim = match
+                self._store.move_to_end(key)
+                logger.debug(f"Cache hit (sim={sim:.3f}): {query[:60]}")
+                return self._store[key][1]
         return None
 
     def put(self, query: str, results: list[Document]) -> None:
         vec = self._embed(query)
-        if query in self._store:
-            self._store.move_to_end(query)
-        self._store[query] = (vec, results)
-        if len(self._store) > self.max_size:
-            self._store.popitem(last=False)
+        with self._lock:
+            if query in self._store:
+                self._store.move_to_end(query)
+            self._store[query] = (vec, results)
+            if len(self._store) > self.max_size:
+                self._store.popitem(last=False)
 
     def clear(self) -> None:
-        self._store.clear()
+        with self._lock:
+            self._store.clear()

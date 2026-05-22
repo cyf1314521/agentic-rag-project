@@ -21,6 +21,8 @@ class Config:
     # ---------- 嵌入与重排序模型（HuggingFace 路径或模型 ID）----------
     EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
     RERANKER_MODEL = os.getenv("RERANKER_MODEL", "BAAI/bge-reranker-v2-m3")
+    # 嵌入/重排设备：auto（有 CUDA 则用 GPU）| cuda | cpu
+    EMBEDDING_DEVICE = os.getenv("EMBEDDING_DEVICE", "auto")
     # 已缓存模型时仅读本地，避免启动反复访问 huggingface.co 超时（WinError 10060）
     HF_LOCAL_FILES_ONLY = os.getenv("HF_LOCAL_FILES_ONLY", "true").lower() == "true"
 
@@ -33,13 +35,19 @@ class Config:
     ENABLE_CACHE = os.getenv("ENABLE_CACHE", "true").lower() == "true"
     CACHE_MAX_SIZE = int(os.getenv("CACHE_MAX_SIZE", "1000"))
 
+    # ---------- 聊天链路可观测（RAG 召回 + Agent 各阶段）----------
+    CHAT_TRACE = os.getenv("CHAT_TRACE", "true").lower() == "true"
+    CHAT_TRACE_SAVE = os.getenv("CHAT_TRACE_SAVE", "true").lower() == "true"
+    CHAT_TRACE_DIR = os.getenv("CHAT_TRACE_DIR", "./data/traces")
+    CHAT_TRACE_PREVIEW_CHARS = int(os.getenv("CHAT_TRACE_PREVIEW_CHARS", "280"))
+
     # ---------- 主 LLM（OpenAI 兼容 API：Ollama / vLLM 等）----------
     LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:11434/v1")
-    LLM_MODEL = os.getenv("LLM_MODEL", "qwen3:32b")
+    LLM_MODEL = os.getenv("LLM_MODEL", "qwen2.5:3b")
     LLM_API_KEY = os.getenv("LLM_API_KEY", "ollama")
     LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.7"))
     LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
-    LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "180"))  # 单次 LLM 请求超时（秒），Ollama 本地模型宜设大一些
+    LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "600"))  # 单次 LLM 请求超时（秒），Ollama 本地模型宜设大一些
     MAX_RETRIES = int(os.getenv("MAX_RETRIES", "2"))  # 子 Agent 反思不足时的最大重试次数
 
     # ---------- 视觉语言模型 VLM（图表理解，可选）----------
@@ -50,6 +58,13 @@ class Config:
 
     # ---------- PostgreSQL：会话元数据 + LangGraph checkpoint ----------
     POSTGRES_URI = os.getenv("POSTGRES_URI", "postgresql://postgres:postgres@localhost:5432/scholar_rag")
+
+    # ---------- PDF 解析（Docling）----------
+    # true：降低 batch、关闭可选视觉管线，减轻 std::bad_alloc（大 PDF / 内存紧张时建议开启）
+    DOCLING_LOW_MEMORY = os.getenv("DOCLING_LOW_MEMORY", "true").lower() == "true"
+    # true：每次上传将解析全文 + 阶段明细写入 PARSE_ARTIFACT_DIR
+    SAVE_PARSE_ARTIFACT = os.getenv("SAVE_PARSE_ARTIFACT", "true").lower() == "true"
+    PARSE_ARTIFACT_DIR = os.getenv("PARSE_ARTIFACT_DIR", "./data/parsed")
 
     # ---------- 文件上传 ----------
     UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./uploads")

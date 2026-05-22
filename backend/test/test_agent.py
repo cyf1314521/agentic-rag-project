@@ -8,14 +8,17 @@ Agent 端到端测试脚本。
 import sys
 import time
 from pathlib import Path
+from typing import cast
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from langchain_openai import ChatOpenAI
 from config import Config
+from app.dependencies import _build_llm
 from rag.retrieval import Retriever
 from rag.citation import CitationExtractor
+from langchain_core.runnables import RunnableConfig
 from agent.graph import build_graph
+from agent.states import fresh_turn_state
 from agent.checkpointer import create_memory_checkpointer
 
 
@@ -41,13 +44,7 @@ def main():
 
     print("\n[1] Initializing LLM...")
     t0 = time.time()
-    llm = ChatOpenAI(
-        base_url=Config.LLM_BASE_URL,
-        model=Config.LLM_MODEL,
-        api_key=Config.LLM_API_KEY,
-        temperature=Config.LLM_TEMPERATURE,
-        max_tokens=Config.LLM_MAX_TOKENS,
-    )
+    llm = _build_llm()
     resp = llm.invoke("Hi")
     print(f"  LLM ready ({time.time() - t0:.1f}s): {resp.content[:50]}")
 
@@ -74,7 +71,7 @@ def main():
     )
     print(f"  Graph nodes: {list(graph.get_graph().nodes.keys())}")
 
-    config = {"configurable": {"thread_id": "test-session-1"}}
+    config = cast(RunnableConfig, {"configurable": {"thread_id": "test-session-1"}})
 
     queries = [
         "What is DualPath and how does it improve LLM inference?",
@@ -87,7 +84,7 @@ def main():
         print("=" * 70)
 
         t0 = time.time()
-        result = graph.invoke({"query": query}, config=config)
+        result = graph.invoke(fresh_turn_state(query, ""), config=config)
         elapsed = time.time() - t0
 
         print(f"\n  [Answer] ({elapsed:.1f}s)")

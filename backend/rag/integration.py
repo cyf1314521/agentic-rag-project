@@ -1,17 +1,17 @@
 """
 PDF 解析与 RAG 入库集成。
 
-主要组件：
-- TextCleaner：文本清洗、页眉页脚/页码过滤
-- PDFParser：Docling 结构化解析 → PaperNode 列表；OCR 回退；PyMuPDF 裁图；LLM 章节分类
-- RAGIntegration：PaperNode → Document → 父子分块 →（可选）写入 Milvus
+主要组件：TextCleaner、PDFParser、RAGIntegration。
 """
 
+from __future__ import annotations
+
 import logging  # 标准库：记录解析、入库过程中的日志与异常
+import time
 from pathlib import Path  # 面向对象的路径操作，用于图片保存目录
 import uuid  # 生成全局唯一的 node_id、chunk_id
 import re  # 正则：清洗文本、识别页码/图注/章节编号等
-from typing import Optional, Any  # 类型标注：可选类型与 Docling 动态 item 类型
+from typing import TYPE_CHECKING, Optional, Any  # 类型标注：可选类型与 Docling 动态 item 类型
 from docling.document_converter import DocumentConverter  # Docling：PDF → 结构化 document
 from langchain_core.documents import Document  # LangChain 文档，供分块与 Milvus 入库
 from langchain_core.messages import SystemMessage, HumanMessage  # LLM 章节分类用的消息格式
@@ -21,6 +21,10 @@ from pydantic import BaseModel, Field  # 结构化 LLM 输出：章节标题 →
 from .models import PaperNode, NodeType  # 项目内论文节点模型与节点类型字面量
 from .node_generator import NodeContentGeneratorFactory, TableGenerator  # 按节点类型生成可读文本
 from .factory import EmbeddingService  # 嵌入模型工厂，与检索侧共用同一套向量模型
+from config import Config
+
+if TYPE_CHECKING:
+    from .parse_artifact import ParseRecorder
 
 FIGURE_SAVE_DIR = Path("./data/figures")  # 从 PDF 裁出的图片默认保存根目录
 
@@ -83,29 +87,75 @@ class PDFParser:
         self._converter_cache = {}  # 按 use_ocr True/False 缓存 DocumentConverter，避免重复创建
         self.figure_save_dir = figure_save_dir or FIGURE_SAVE_DIR  # 图片输出目录
         self.llm = llm  # 可选 LLM，用于 _classify_sections；为 None 则跳过分类
+        self._recorder: ParseRecorder | None = None
 
-    def parse(self, pdf_path: str, paper_id: str) -> list[PaperNode]:
-        """Parse PDF file into list of PaperNodes.
+    def parse(
+        self,
+        pdf_path: str,
+        paper_id: str,
+        recorder: ParseRecorder | None = None,
+    ) -> list[PaperNode]:
+        """Parse PDF file into list of PaperNodes."""
+        self._recorder = recorder
+        if recorder:
+            recorder.stage("parse_start", {"pdf_path": pdf_path, "paper_id": paper_id})
 
-        Args:
-            pdf_path: Path to PDF file
-            paper_id: Unique identifier for the paper
-
-        Returns:
-            List of PaperNode objects
-        """
-        # 先不用 OCR 解析（速度快，适合可选中文字的 PDF）
+        t0 = time.perf_counter()
         nodes = self._parse_with_ocr(pdf_path, paper_id, use_ocr=False)
+        total_text = sum(len(n.text) for n in nodes)
+        page_count = max((n.page_num for n in nodes), default=1)
 
-        total_text = sum(len(n.text) for n in nodes)  # 所有节点文本总字符数
-        page_count = max((n.page_num for n in nodes), default=1)  # 最大页码作为页数估计
+        if recorder:
+            recorder.stage(
+                "docling_pass",
+                {
+                    "use_ocr": False,
+                    "total_text_chars": total_text,
+                    "page_count_est": page_count,
+                    "node_count": len(nodes),
+                },
+                duration_sec=time.perf_counter() - t0,
+            )
 
-        # 文本过少时启用 OCR 重新解析（扫描版 PDF）
         if total_text < 1000 or total_text / page_count < 200:
-            print(f"Low text detected ({total_text} chars, {page_count} pages), retrying with OCR...")
+            msg = f"Low text ({total_text} chars, {page_count} pages), retrying with OCR"
+            logger.info(msg)
+            if recorder:
+                recorder.warn(msg)
+            t1 = time.perf_counter()
             nodes = self._parse_with_ocr(pdf_path, paper_id, use_ocr=True)
+            if recorder:
+                recorder.stage(
+                    "docling_pass",
+                    {
+                        "use_ocr": True,
+                        "total_text_chars": sum(len(n.text) for n in nodes),
+                        "node_count": len(nodes),
+                    },
+                    duration_sec=time.perf_counter() - t1,
+                )
 
+        self._recorder = None
         return nodes
+
+    @staticmethod
+    def _build_pipeline_options(use_ocr: bool):
+        """构建 Docling PDF 管道选项；低内存模式可缓解 preprocess 阶段 std::bad_alloc。"""
+        from docling.datamodel.pipeline_options import PdfPipelineOptions
+
+        opts = PdfPipelineOptions()
+        opts.do_ocr = use_ocr
+        if Config.DOCLING_LOW_MEMORY:
+            opts.layout_batch_size = 1
+            opts.table_batch_size = 1
+            opts.ocr_batch_size = 1
+            opts.do_chart_extraction = False
+            opts.do_picture_classification = False
+            opts.do_picture_description = False
+            opts.generate_picture_images = False
+            opts.generate_table_images = False
+            opts.images_scale = 1.0
+        return opts
 
     def _parse_with_ocr(self, pdf_path: str, paper_id: str, use_ocr: bool) -> list[PaperNode]:
         """Internal parse with OCR option."""
@@ -114,8 +164,7 @@ class PDFParser:
         from docling.datamodel.base_models import InputFormat  # 输入格式枚举，如 InputFormat.PDF
 
         if use_ocr not in self._converter_cache:  # 该 OCR 模式尚未创建过 converter
-            pipeline_options = PdfPipelineOptions()  # 默认 PDF 解析选项
-            pipeline_options.do_ocr = use_ocr  # True 时对扫描页做 OCR
+            pipeline_options = self._build_pipeline_options(use_ocr)
             self._converter_cache[use_ocr] = DocumentConverter(
                 format_options={
                     InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
@@ -123,8 +172,16 @@ class PDFParser:
             )
 
         converter = self._converter_cache[use_ocr]  # 取出对应 OCR 开关的转换器
+        rec = self._recorder
+        t_convert = time.perf_counter()
         result = converter.convert(pdf_path)  # 执行 Docling 转换
         doc = result.document  # 结构化文档对象，可 iterate_items
+        if rec:
+            rec.stage(
+                "docling_convert",
+                {"use_ocr": use_ocr, "low_memory": Config.DOCLING_LOW_MEMORY},
+                duration_sec=time.perf_counter() - t_convert,
+            )
         self._fitz_doc = None  # 每次 parse 重置，避免跨文件复用 PyMuPDF 句柄
 
         page_height = self._get_page_height(doc)  # 用于页眉页脚过滤的参考页高
@@ -133,6 +190,16 @@ class PDFParser:
         filtered_items = self._filter_items(raw_items, page_height)  # 去掉页码、页眉页脚等
         sorted_items = self._sort_reading_order(filtered_items)  # 按阅读顺序（行→列）排序
         top_level_x = self._compute_top_level_x(sorted_items)  # 一级标题左边界 x，用于章节栈
+        if rec:
+            rec.stage(
+                "postprocess_layout",
+                {
+                    "raw_items": len(raw_items),
+                    "after_filter": len(filtered_items),
+                    "after_sort": len(sorted_items),
+                    "page_height_pt": page_height,
+                },
+            )
 
         nodes = []  # 最终 PaperNode 列表
         order = 0  # 文档内全局顺序号
@@ -147,8 +214,22 @@ class PDFParser:
                 order += 1  # 仅成功建节点时递增 order
 
         self._link_captions_to_figures_tables(nodes)  # 图/表与 caption 文本合并进 node.text
+        tables_with_content = sum(
+            1 for n in nodes if n.node_type == "table" and "Table content:" in n.text
+        )
+        if rec:
+            rec.stage("link_captions_tables", {"tables_with_linearized_content": tables_with_content})
+
         self._link_text_references(nodes)  # 段落中 "Figure 3" 等与图/表节点双向 related_ids
+        figures_before = sum(1 for n in nodes if n.image_path)
         self._extract_figure_images(pdf_path, doc, nodes)  # PyMuPDF 按 bbox 裁图保存
+        figures_saved = sum(1 for n in nodes if n.image_path) - figures_before
+        if rec:
+            rec.stage(
+                "extract_figure_images",
+                {"figures_with_image_path": sum(1 for n in nodes if n.image_path), "newly_saved": figures_saved},
+            )
+
         self._classify_sections(nodes)  # LLM 给 section_header 打 section_type 并继承到子节点
 
         return nodes
@@ -320,7 +401,7 @@ class PDFParser:
 
     def _map_item_type(self, item_type: str) -> Optional[NodeType]:
         """Map Docling item type to NodeType."""
-        mapping = {
+        mapping: dict[str, NodeType] = {
             "SectionHeaderItem": "section_header",
             "TextItem": "paragraph",
             "ListItem": "paragraph",
@@ -432,19 +513,22 @@ class PDFParser:
         return TableGenerator.linearize_table(headers, rows)  # 转为 "列名: 值" 可读字符串
 
     def _link_captions_to_figures_tables(self, nodes: list[PaperNode]):
-        """Link captions to their corresponding figures/tables."""
+        """Link captions to figures/tables; always linearize tables (not only when caption exists)."""
         for node in nodes:
-            if node.node_type in ["figure", "table"]:
-                caption_type = "Figure" if node.node_type == "figure" else "Table"
-                caption_text = self._find_caption_for_node(node, nodes, caption_type)
-                if caption_text:
-                    generator = NodeContentGeneratorFactory.get_generator(node.node_type)
-                    context = {"caption_text": caption_text}
-                    if node.node_type == "table" and 'item' in node.metadata:
-                        linearized = self._linearize_table(node.metadata['item'])
-                        if linearized:
-                            context["linearized_table"] = linearized
-                    node.text = generator.generate_text(node, "", context)  # 用 caption+表内容重写 text
+            if node.node_type not in ("figure", "table"):
+                continue
+            caption_type = "Figure" if node.node_type == "figure" else "Table"
+            caption_text = self._find_caption_for_node(node, nodes, caption_type)
+            generator = NodeContentGeneratorFactory.get_generator(node.node_type)
+            context: dict = {}
+            if caption_text:
+                context["caption_text"] = caption_text
+            if node.node_type == "table" and "item" in node.metadata:
+                linearized = self._linearize_table(node.metadata["item"])
+                if linearized:
+                    context["linearized_table"] = linearized
+            if context:
+                node.text = generator.generate_text(node, "", context)
 
     def _find_caption_for_node(self, node: PaperNode, nodes: list[PaperNode], caption_type: str) -> str:
         """Find caption for a figure/table node."""
@@ -526,7 +610,10 @@ class PDFParser:
             ph = page_heights[page_idx]
 
             # Docling bbox: (l, t, r, b) in PDF points, origin bottom-left
-            l, t, r, b = node.bbox
+            bbox = node.bbox
+            if not bbox:
+                continue
+            l, t, r, b = bbox
             # Convert to fitz (origin top-left)
             fitz_rect = fitz.Rect(l, ph - t, r, ph - b)
             # Add small padding
@@ -549,17 +636,23 @@ class PDFParser:
 
     def _classify_sections(self, nodes: list[PaperNode]):
         """Classify section headers using LLM."""
+        rec = self._recorder
         if not self.llm:
+            if rec:
+                rec.set_section_classification("skipped", {"reason": "no_llm_configured"})
             return
 
         section_nodes = [n for n in nodes if n.node_type == "section_header"]
         if not section_nodes:
+            if rec:
+                rec.set_section_classification("skipped", {"reason": "no_section_headers"})
             return
 
         titles = [n.text.replace("Section: ", "").strip() for n in section_nodes]
         titles_str = "\n".join(f"{i+1}. {t}" for i, t in enumerate(titles))
 
         try:
+            t0 = time.perf_counter()
             structured_llm = self.llm.with_structured_output(SectionClassification)
             result = structured_llm.invoke([
                 SystemMessage(content=SECTION_CLASSIFIER_PROMPT),
@@ -573,7 +666,6 @@ class PDFParser:
                 section_type = title_to_type.get(title, "other")
                 node.metadata["section_type"] = section_type
 
-            # 非标题节点：若 section_path 含某标题，继承该标题的 section_type
             for node in nodes:
                 if node.node_type != "section_header" and node.section_path:
                     for section_node in section_nodes:
@@ -583,8 +675,19 @@ class PDFParser:
                                 "section_type", "other"
                             )
                             break
+            if rec:
+                rec.set_section_classification(
+                    "ok",
+                    {
+                        "section_count": len(section_nodes),
+                        "duration_sec": round(time.perf_counter() - t0, 3),
+                        "mapping": title_to_type,
+                    },
+                )
         except Exception as e:
-            print(f"Section classification failed: {e}")
+            logger.warning("Section classification failed: %s", e)
+            if rec:
+                rec.set_section_classification("failed", {"error": str(e)})
 
 
 class RAGIntegration:

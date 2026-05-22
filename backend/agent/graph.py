@@ -1,11 +1,11 @@
 """
 LangGraph 多智能体图组装。
 
-主图：summarize → classify → analyze → [Send 并行 sub_agent] → prepare_synthesis → synthesize
+主图：summarize → classify → analyze → [Send 并行 sub_agent，条数由 complexity 限制] → prepare_synthesis → synthesize
 子图（每个 sub_query 一份）：retrieve → generate → reflect → (retry | END)
 """
 
-from typing import Optional
+from typing import Any, Optional, cast
 
 from langchain_core.language_models import BaseChatModel
 from langgraph.graph import StateGraph, START, END
@@ -102,14 +102,27 @@ def build_graph(
     """
     def dispatch(state: AgentState):
         """analyze 之后：为每个 sub_query 创建一个 Send，并行执行 sub_agent。"""
-        return [Send("sub_agent", {"query": q, "query_type": state.get("query_type", "general")}) for q in state["sub_queries"]]
+        tid = state.get("trace_id", "")
+        qtype = state.get("query_type", "general")
+        paper_ids = state.get("paper_ids") or []
+        return [
+            Send("sub_agent", {
+                "query": q,
+                "query_type": qtype,
+                "trace_id": tid,
+                "paper_ids": paper_ids,
+            })
+            for q in state["sub_queries"]
+        ]
 
-    async def sub_agent_node(state: dict) -> dict:
+    async def sub_agent_node(state: dict[str, Any]) -> dict:
         """每个 Send  payload 进入此节点：编译子图并 ainvoke。"""
         sub_graph = _build_sub_agent_graph(llm, retriever, citation_extractor, max_retries, vision_service).compile()
         sub_input = {
             "query": state["query"],
+            "trace_id": state.get("trace_id", ""),
             "query_type": state.get("query_type", "general"),
+            "paper_ids": state.get("paper_ids") or [],
             "documents": [],
             "answer": "",
             "citations": [],
@@ -119,7 +132,16 @@ def build_graph(
             "needs_vlm": False,
         }
         result = await sub_graph.ainvoke(sub_input)
-        return _collect_sub_answer(result)
+        from rag.chat_trace import get_trace
+
+        trace = get_trace(state.get("trace_id", ""))
+        if trace:
+            trace.sub_agent_done(
+                sub_query=result.get("query", state["query"]),
+                answer=str(result.get("answer", "")),
+                citation_count=len(result.get("citations") or []),
+            )
+        return _collect_sub_answer(cast(SubAgentState, result))
 
     async def summarize_node(state: AgentState) -> dict:
         return await summarize_conversation(state, llm=llm)
@@ -138,7 +160,7 @@ def build_graph(
     graph.add_node("summarize", summarize_node)
     graph.add_node("classify", classify_node)
     graph.add_node("analyze", analyze_node)
-    graph.add_node("sub_agent", sub_agent_node)
+    graph.add_node("sub_agent", sub_agent_node)  # type: ignore[arg-type]
     graph.add_node("prepare_synthesis", prepare_synthesis)
     graph.add_node("synthesize", synthesize_node)
 

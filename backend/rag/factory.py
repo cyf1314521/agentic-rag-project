@@ -5,7 +5,36 @@ RAG 组件工厂：Embedding、Reranker、Milvus Store、VLM 的单例创建。
 """
 
 import base64
+import logging
 from pathlib import Path
+from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+
+def resolve_torch_device(setting: str | None = None) -> str:
+    """将 EMBEDDING_DEVICE（auto/cuda/cpu）解析为 sentence-transformers 可用设备名。"""
+    raw = (setting or Config.EMBEDDING_DEVICE or "auto").strip().lower()
+    if raw in ("cpu", "cuda", "mps"):
+        return raw
+    if raw.startswith("cuda:"):
+        return raw
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            name = torch.cuda.get_device_name(0)
+            logger.info("Using GPU for embeddings/reranker: %s", name)
+            return "cuda"
+        if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+            logger.info("Using Apple MPS for embeddings/reranker")
+            return "mps"
+    except ImportError:
+        pass
+    logger.warning(
+        "EMBEDDING_DEVICE=auto but CUDA unavailable (install torch with CUDA, e.g. cu124). Using CPU."
+    )
+    return "cpu"
 from langchain_milvus import Milvus, BM25BuiltInFunction
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.messages import HumanMessage
@@ -14,6 +43,7 @@ from pymilvus import MilvusClient, connections
 from sentence_transformers import CrossEncoder
 
 from config import Config
+from app.llm_utils import message_content_to_str
 
 
 def ensure_milvus_orm_connection(store: Milvus) -> None:
@@ -34,10 +64,14 @@ class EmbeddingService:
     @classmethod
     def get_embeddings(cls, model_name: str) -> HuggingFaceEmbeddings:
         if model_name not in cls._instances:
-            kwargs = {}
+            device = resolve_torch_device()
+            model_kwargs: dict = {"device": device}
             if Config.HF_LOCAL_FILES_ONLY:
-                kwargs["model_kwargs"] = {"local_files_only": True}
-            cls._instances[model_name] = HuggingFaceEmbeddings(model_name=model_name, **kwargs)
+                model_kwargs["local_files_only"] = True
+            cls._instances[model_name] = HuggingFaceEmbeddings(
+                model_name=model_name,
+                model_kwargs=model_kwargs,
+            )
         return cls._instances[model_name]
 
 
@@ -49,9 +83,11 @@ class RerankerService:
     @classmethod
     def get_reranker(cls, model_name: str) -> CrossEncoder:
         if model_name not in cls._instances:
+            device = resolve_torch_device()
             cls._instances[model_name] = CrossEncoder(
                 model_name,
                 local_files_only=Config.HF_LOCAL_FILES_ONLY,
+                device=device,
             )
         return cls._instances[model_name]
 
@@ -71,10 +107,10 @@ class MilvusStoreFactory:
         connection_args = {"uri": milvus_uri}
 
         # Milvus() 在 __init__ 里会访问 ORM Collection，须先于构造注册 pymilvus ORM 连接
-        probe = MilvusClient(**connection_args)
+        probe = MilvusClient(uri=milvus_uri)
         alias = probe._using
         if not connections.has_connection(alias):
-            connections.connect(alias=alias, **connection_args)
+            connections.connect(alias=alias, uri=milvus_uri)
 
         store = Milvus(
             embeddings,
@@ -100,8 +136,8 @@ class VisionService:
         self.llm = llm
 
     @classmethod
-    def get_instance(cls, llm: BaseChatModel = None):
-        if cls._instance is None and llm:
+    def get_instance(cls, llm: Optional[BaseChatModel] = None) -> Optional["VisionService"]:
+        if cls._instance is None and llm is not None:
             cls._instance = cls(llm)
         return cls._instance
 
@@ -136,7 +172,9 @@ class VisionService:
 
         try:
             response = self.llm.invoke([message])
-            return response.content if hasattr(response, "content") else str(response)
+            if hasattr(response, "content"):
+                return message_content_to_str(response.content)
+            return str(response)
         except Exception as e:
             print(f"VLM analysis failed: {e}")
             return ""

@@ -46,13 +46,14 @@ class IncrementalUpdater:
             if col is None:
                 return None
             safe_hash = content_hash.replace('"', "")
-            results = col.query(
+            results: list[dict] = col.query(  # type: ignore[assignment]
                 expr=f'content_hash == "{safe_hash}"',
                 output_fields=["paper_id"],
                 limit=1,
             )
             if results:
-                return results[0].get("paper_id")
+                paper_id = results[0].get("paper_id")
+                return str(paper_id) if paper_id else None
             return None
         except Exception:
             return None

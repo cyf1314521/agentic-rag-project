@@ -2,12 +2,12 @@
 
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from langchain_openai import ChatOpenAI
 from config import Config
+from app.dependencies import _build_vlm_llm
 from rag.integration import PDFParser
-from rag.vision import VisionService
+from rag.factory import VisionService
 
 def test_figure_extraction():
     """Test 1: Figure extraction from PDF."""
@@ -53,13 +53,7 @@ def test_vlm_analysis():
         print("Set VLM_ENABLED=true in .env to test VLM.")
         return
     
-    vlm_llm = ChatOpenAI(
-        base_url=Config.VLM_BASE_URL,
-        model=Config.VLM_MODEL,
-        api_key=Config.VLM_API_KEY,
-    )
-    
-    vision_service = VisionService(vlm_llm)
+    vision_service = VisionService(_build_vlm_llm())
     
     # Find a test figure
     test_image = Path("./data/figures/test_paper/page1_order5.png")

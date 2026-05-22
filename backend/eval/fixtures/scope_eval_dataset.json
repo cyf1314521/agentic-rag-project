@@ -1,0 +1,146 @@
+{
+  "version": "1",
+  "description": "Session-scope 评测集：每题仅应检索对应 paper_id 的 PDF。入库后在本会话仅上传该 PDF 再提问，或由 run_scope_eval.py 注入 paper_ids。",
+  "cases": [
+    {
+      "id": "eval_01_abstract_efficiency",
+      "paper_id": "eval_01_solar_pv",
+      "query": "这篇关于薄膜太阳能电池的论文，摘要里报告的最高光电转换效率是多少？",
+      "reference_answer": "摘要报告碲化镉薄膜太阳能电池最高光电转换效率为 23.5%，并由 NREL 2023 年校准协议验证。",
+      "must_contain": ["23.5", "NREL"]
+    },
+    {
+      "id": "eval_01_abstract_topic",
+      "paper_id": "eval_01_solar_pv",
+      "query": "该论文摘要的研究对象是什么类型的太阳能电池？",
+      "reference_answer": "研究对象为碲化镉薄膜太阳能电池。",
+      "must_contain": ["碲化镉", "薄膜"]
+    },
+    {
+      "id": "eval_02_ph_projection",
+      "paper_id": "eval_02_ocean_ph",
+      "query": "这篇海洋酸化论文的摘要预测到 2050 年北太平洋表层 pH 是多少？",
+      "reference_answer": "预测到 2050 年北太平洋表层 pH 将从 8.10 降至 7.92。",
+      "must_contain": ["7.92", "2050"]
+    },
+    {
+      "id": "eval_02_ph_baseline",
+      "paper_id": "eval_02_ocean_ph",
+      "query": "摘要中提到的当前北太平洋表层 pH 基准值是多少？",
+      "reference_answer": "基准 pH 为 8.10。",
+      "must_contain": ["8.10"]
+    },
+    {
+      "id": "eval_03_tps",
+      "paper_id": "eval_03_blockchain_scm",
+      "query": "该供应链区块链论文摘要中的峰值吞吐量是多少 TPS？",
+      "reference_answer": "峰值吞吐量为 1200 TPS。",
+      "must_contain": ["1200", "TPS"]
+    },
+    {
+      "id": "eval_03_platform",
+      "paper_id": "eval_03_blockchain_scm",
+      "query": "摘要采用什么区块链平台架构？",
+      "reference_answer": "基于 Hyperledger Fabric 的供应链溯源架构。",
+      "must_contain": ["Hyperledger", "Fabric"]
+    },
+    {
+      "id": "eval_04_dice",
+      "paper_id": "eval_04_mri_glioma",
+      "query": "这篇 MRI 胶质瘤分割论文摘要中的平均 Dice 系数是多少？",
+      "reference_answer": "五折交叉验证平均 Dice 系数为 0.89。",
+      "must_contain": ["0.89", "Dice"]
+    },
+    {
+      "id": "eval_04_method",
+      "paper_id": "eval_04_mri_glioma",
+      "query": "摘要使用什么网络进行脑胶质瘤分割？",
+      "reference_answer": "采用 3D U-Net 进行自动分割。",
+      "must_contain": ["3D", "U-Net"]
+    },
+    {
+      "id": "eval_05_power",
+      "paper_id": "eval_05_wind_turbine",
+      "query": "该海上风电论文摘要中样机的额定功率是多少？",
+      "reference_answer": "样机额定功率为 4.2 MW。",
+      "must_contain": ["4.2", "MW"]
+    },
+    {
+      "id": "eval_05_hours",
+      "paper_id": "eval_05_wind_turbine",
+      "query": "摘要提到的年等效满发小时数是多少？",
+      "reference_answer": "年等效满发小时数为 4120 h。",
+      "must_contain": ["4120"]
+    },
+    {
+      "id": "eval_06_f1",
+      "paper_id": "eval_06_nlp_sentiment",
+      "query": "这篇双语情感分类论文摘要中的宏平均 F1 是多少？",
+      "reference_answer": "宏平均 F1 分数达到 0.91。",
+      "must_contain": ["0.91", "F1"]
+    },
+    {
+      "id": "eval_06_corpus",
+      "paper_id": "eval_06_nlp_sentiment",
+      "query": "摘要中训练语料大约有多少条？",
+      "reference_answer": "训练语料 58 万条。",
+      "must_contain": ["58"]
+    },
+    {
+      "id": "eval_07_density",
+      "paper_id": "eval_07_battery_solid",
+      "query": "该固态锂电池论文摘要中的质量能量密度是多少 Wh/kg？",
+      "reference_answer": "质量能量密度为 380 Wh/kg。",
+      "must_contain": ["380", "Wh/kg"]
+    },
+    {
+      "id": "eval_07_cycles",
+      "paper_id": "eval_07_battery_solid",
+      "query": "摘要中 500 次循环后的容量保持率是多少？",
+      "reference_answer": "循环 500 次容量保持率 92%。",
+      "must_contain": ["92", "500"]
+    },
+    {
+      "id": "eval_08_delay",
+      "paper_id": "eval_08_urban_traffic",
+      "query": "这篇城市交通信号论文摘要中高峰延误降低了百分之多少？",
+      "reference_answer": "高峰时段平均行程延误降低 18%。",
+      "must_contain": ["18"]
+    },
+    {
+      "id": "eval_08_simulator",
+      "paper_id": "eval_08_urban_traffic",
+      "query": "摘要中的仿真环境使用什么工具？",
+      "reference_answer": "仿真环境为 SUMO 北京五环内路网。",
+      "must_contain": ["SUMO"]
+    },
+    {
+      "id": "eval_09_rmsd",
+      "paper_id": "eval_09_protein_folding",
+      "query": "该蛋白质结构预测论文摘要中的平均 RMSD 是多少？",
+      "reference_answer": "平均 RMSD 为 1.2 Å。",
+      "must_contain": ["1.2", "RMSD"]
+    },
+    {
+      "id": "eval_09_benchmark",
+      "paper_id": "eval_09_protein_folding",
+      "query": "摘要在哪个靶蛋白子集上评估？",
+      "reference_answer": "在 CASP15 靶蛋白子集上评估。",
+      "must_contain": ["CASP15"]
+    },
+    {
+      "id": "eval_10_threshold",
+      "paper_id": "eval_10_quantum_error",
+      "query": "这篇量子纠错论文摘要中物理错误率阈值是多少？",
+      "reference_answer": "物理错误率 0.7% 以下时逻辑错误率随码距指数衰减。",
+      "must_contain": ["0.7"]
+    },
+    {
+      "id": "eval_10_code",
+      "paper_id": "eval_10_quantum_error",
+      "query": "摘要研究采用什么量子纠错码？",
+      "reference_answer": "研究超导量子比特在表面码纠错下的逻辑错误率。",
+      "must_contain": ["表面码"]
+    }
+  ]
+}

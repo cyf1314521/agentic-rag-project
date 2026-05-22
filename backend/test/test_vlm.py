@@ -131,14 +131,9 @@ def test_vlm_analysis(nodes):
         print("  ✗ No figure images available\n")
         return
 
-    from langchain_openai import ChatOpenAI
-    vlm_llm = ChatOpenAI(
-        base_url=Config.VLM_BASE_URL,
-        model=Config.VLM_MODEL,
-        api_key=Config.VLM_API_KEY,
-        temperature=0,
-    )
-    vision_service = VisionService(vlm_llm)
+    from app.dependencies import _build_vlm_llm
+
+    vision_service = VisionService(_build_vlm_llm())
 
     node = figure_nodes[0]
     print(f"  Analyzing: {node.image_path}")

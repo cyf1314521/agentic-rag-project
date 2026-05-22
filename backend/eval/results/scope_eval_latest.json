@@ -1,0 +1,51 @@
+{
+  "total": 3,
+  "passed": 2,
+  "pass_rate": 0.667,
+  "results": [
+    {
+      "id": "eval_01_abstract_efficiency",
+      "paper_id": "eval_01_solar_pv",
+      "query": "这篇关于薄膜太阳能电池的论文，摘要里报告的最高光电转换效率是多少？",
+      "passed": false,
+      "scope_ok": true,
+      "missing_tokens": [
+        "NREL"
+      ],
+      "paper_ids_in_citations": [
+        "eval_01_solar_pv"
+      ],
+      "elapsed_s": 6.9,
+      "answer_preview": "这篇关于薄膜太阳能电池的论文摘要里报告的最高光电转换效率是23.5%。",
+      "reference_answer": "摘要报告碲化镉薄膜太阳能电池最高光电转换效率为 23.5%，并由 NREL 2023 年校准协议验证。"
+    },
+    {
+      "id": "eval_01_abstract_topic",
+      "paper_id": "eval_01_solar_pv",
+      "query": "该论文摘要的研究对象是什么类型的太阳能电池？",
+      "passed": true,
+      "scope_ok": true,
+      "missing_tokens": [],
+      "paper_ids_in_citations": [
+        "eval_01_solar_pv"
+      ],
+      "elapsed_s": 6.6,
+      "answer_preview": "该论文研究的对象是碲化镉薄膜太阳能电池。这可以从第[1]节的标题“Thin-Film Cadmium Telluride Solar Cells: Efficiency and Deployment”中得出，该节还提到了关键词CdTe，进一步确认了研究对象为碲化镉薄膜太阳能电池 [2]、[3]。",
+      "reference_answer": "研究对象为碲化镉薄膜太阳能电池。"
+    },
+    {
+      "id": "eval_02_ph_projection",
+      "paper_id": "eval_02_ocean_ph",
+      "query": "这篇海洋酸化论文的摘要预测到 2050 年北太平洋表层 pH 是多少？",
+      "passed": true,
+      "scope_ok": true,
+      "missing_tokens": [],
+      "paper_ids_in_citations": [
+        "eval_02_ocean_ph"
+      ],
+      "elapsed_s": 12.4,
+      "answer_preview": "这篇海洋酸化论文的摘要中提到，至2050年，北太平洋表层pH将降至7.92。 [16]",
+      "reference_answer": "预测到 2050 年北太平洋表层 pH 将从 8.10 降至 7.92。"
+    }
+  ]
+}
