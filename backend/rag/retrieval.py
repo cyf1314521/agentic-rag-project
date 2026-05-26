@@ -6,7 +6,9 @@
 """
 
 import logging  # 标准库：用于记录检索过程中的日志（警告、调试、信息等）
-from typing import Optional  # 类型标注：表示参数或返回值可以是某类型或 None
+from typing import Literal, Optional  # 类型标注：表示参数或返回值可以是某类型或 None
+
+SearchMode = Literal["hybrid", "dense", "sparse"]
 from langchain_core.language_models import BaseChatModel
 
 from app.llm_utils import message_content_to_str
@@ -76,6 +78,7 @@ class Retriever:
         node_type_filter: Optional[list[str]] = None,  # 元数据过滤：仅保留指定 node_type 的块
         section_type_filter: Optional[list[str]] = None,  # 元数据过滤：仅保留指定 section_type 的块
         paper_id_filter: Optional[list[str]] = None,  # 会话 scope：仅检索这些 paper_id
+        search_mode: SearchMode = "hybrid",  # hybrid=BM25+dense RRF；dense/sparse=单路
     ) -> list[Document]:
         """执行完整检索管道，返回 Top-K 个 Document。"""
         # 集合被 manage 路由 drop 后需清空 langchain-milvus 内部缓存，否则仍指向已删除的 collection
@@ -111,7 +114,12 @@ class Retriever:
         if rerank and self.reranker:  # 需要重排且重排模型可用
             # 混合检索多取 fetch_k×2 条候选，供 CrossEncoder 筛选
             children = self._hybrid_search(
-                self._child_store, search_query, fetch_k * RERANK_FETCH_MULTIPLIER, rrf_k, expr
+                self._child_store,
+                search_query,
+                fetch_k * RERANK_FETCH_MULTIPLIER,
+                rrf_k,
+                expr,
+                search_mode=search_mode,
             )
             if not children:  # 混合检索零结果
                 logger.warning(f"No results found for query: {query[:50]}...")
@@ -119,7 +127,9 @@ class Retriever:
             # 用原始 query（非 HyDE 文本）与 passage 配对打分，保留 top fetch_k
             children = self._rerank(query, children, fetch_k)
         else:  # 不重排：混合检索直接取 fetch_k 条
-            children = self._hybrid_search(self._child_store, search_query, fetch_k, rrf_k, expr)
+            children = self._hybrid_search(
+                self._child_store, search_query, fetch_k, rrf_k, expr, search_mode=search_mode
+            )
             if not children:
                 logger.warning(f"No results found for query: {query[:50]}...")
                 return []
@@ -177,6 +187,40 @@ class Retriever:
         # 两组都有则用 && 表示同时满足；无任何过滤则返回 None（检索时不带 expr）
         return " && ".join(parts) if parts else None
 
+    def _single_ann_search(
+        self,
+        store: Milvus,
+        query: str,
+        anns_field: str,
+        k: int,
+        expr: Optional[str] = None,
+    ) -> list[Document]:
+        """单字段 ANN（dense 或 sparse），不经 RRF。langchain-milvus 的 similarity_search 在多向量库上会始终搜两路，故消融需直连 client.search。"""
+        vector_fields = store._as_list(store._vector_field)
+        param_list = store._as_list(store.search_params)
+        idx = vector_fields.index(anns_field)
+        if anns_field in store._vector_fields_from_embedding:
+            search_data = self.embeddings.embed_query(query)
+        else:
+            search_data = query
+        if store.enable_dynamic_field:
+            output_fields = ["*"]
+        else:
+            output_fields = store._remove_forbidden_fields(store.fields[:])
+        search_kwargs: dict = {
+            "data": [search_data],
+            "anns_field": anns_field,
+            "search_params": param_list[idx],
+            "limit": k,
+            "output_fields": output_fields,
+            "timeout": store.timeout,
+        }
+        if expr is not None:
+            search_kwargs["filter"] = expr
+        col_search_res = store.client.search(store.collection_name, **search_kwargs)
+        parsed = store._parse_documents_from_search_results(col_search_res)
+        return [doc for doc, _ in parsed]
+
     def _hybrid_search(
         self,
         store: Milvus,  # 在哪个 Milvus 封装实例上搜（通常为 _child_store）
@@ -184,22 +228,24 @@ class Retriever:
         k: int,  # 最终返回条数
         rrf_k: int,  # RRF 融合参数
         expr: Optional[str] = None,  # 可选的 Milvus 标量过滤表达式
+        search_mode: SearchMode = "hybrid",
     ) -> list[Document]:
-        """dense + sparse(BM25) 经 Milvus 内置 RRF 融合。"""
-        # 定义 Milvus 2.x 的 Rerank 函数：对 dense、sparse 两路召回做 Reciprocal Rank Fusion
+        """hybrid=dense+sparse RRF；dense/sparse=仅单路 ANN（用于消融对比）。"""
+        if search_mode == "dense":
+            return self._single_ann_search(store, query, "dense", k, expr)
+        if search_mode == "sparse":
+            return self._single_ann_search(store, query, "sparse", k, expr)
+
         reranker = Function(
-            name="rrf_reranker",  # 函数在检索请求中的逻辑名称
-            function_type=FunctionType.RERANK,  # 类型为重排/融合，而非标量运算等
-            input_field_names=["dense", "sparse"],  # 参与融合的两个向量字段名（需与 schema 一致）
-            params={"k": rrf_k},  # 传入 RRF 公式中的 k 常数
+            name="rrf_hybrid",
+            function_type=FunctionType.RERANK,
+            input_field_names=["dense", "sparse"],
+            params={"k": rrf_k},
         )
-        # similarity_search 参数：返回 k 条、使用上述 reranker、每路先 fetch_k 条再融合
-        kwargs = {"k": k, "reranker": reranker, "fetch_k": k}
-        if expr:  # 有过滤条件时加入 expr，Milvus 先过滤再检索
+        kwargs: dict = {"k": k, "reranker": reranker, "fetch_k": k}
+        if expr:
             kwargs["expr"] = expr
-        # LangChain Milvus 封装：对 query 做嵌入 + BM25，执行混合检索并 RRF
-        results = store.similarity_search(query, **kwargs)
-        return results  # Document 列表，metadata 含 chunk_id、chunk_parent_id 等
+        return store.similarity_search(query, **kwargs)
 
     def _rerank(self, query: str, docs: list[Document], top_k: int) -> list[Document]:
         """CrossEncoder 对 (query, passage) 打分后取 top_k。"""

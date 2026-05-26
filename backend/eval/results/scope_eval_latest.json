@@ -1,7 +1,7 @@
 {
-  "total": 3,
-  "passed": 2,
-  "pass_rate": 0.667,
+  "total": 20,
+  "passed": 15,
+  "pass_rate": 0.75,
   "results": [
     {
       "id": "eval_01_abstract_efficiency",
@@ -15,8 +15,8 @@
       "paper_ids_in_citations": [
         "eval_01_solar_pv"
       ],
-      "elapsed_s": 6.9,
-      "answer_preview": "这篇关于薄膜太阳能电池的论文摘要里报告的最高光电转换效率是23.5%。",
+      "elapsed_s": 11.0,
+      "answer_preview": "这篇关于薄膜太阳能电池的论文，摘要里报告的最高光电转换效率是23.5%。 [3]和[10]都提到了这个信息。",
       "reference_answer": "摘要报告碲化镉薄膜太阳能电池最高光电转换效率为 23.5%，并由 NREL 2023 年校准协议验证。"
     },
     {
@@ -29,23 +29,263 @@
       "paper_ids_in_citations": [
         "eval_01_solar_pv"
       ],
-      "elapsed_s": 6.6,
-      "answer_preview": "该论文研究的对象是碲化镉薄膜太阳能电池。这可以从第[1]节的标题“Thin-Film Cadmium Telluride Solar Cells: Efficiency and Deployment”中得出，该节还提到了关键词CdTe，进一步确认了研究对象为碲化镉薄膜太阳能电池 [2]、[3]。",
+      "elapsed_s": 6.4,
+      "answer_preview": "该论文摘要的研究对象是碲化镉（CdTe）薄膜太阳能电池。",
       "reference_answer": "研究对象为碲化镉薄膜太阳能电池。"
     },
     {
       "id": "eval_02_ph_projection",
       "paper_id": "eval_02_ocean_ph",
       "query": "这篇海洋酸化论文的摘要预测到 2050 年北太平洋表层 pH 是多少？",
+      "passed": false,
+      "scope_ok": true,
+      "missing_tokens": [
+        "7.92"
+      ],
+      "paper_ids_in_citations": [
+        "eval_02_ocean_ph"
+      ],
+      "elapsed_s": 10.7,
+      "answer_preview": "证据1中提到的文章《海洋酸化》并没有提及关于2050年北太平洋表层pH值的预测信息。因此，根据提供的信息无法回答这个问题。\n\n所以，这篇论文摘要没有预测到2050年北太平洋表层pH是多少。",
+      "reference_answer": "预测到 2050 年北太平洋表层 pH 将从 8.10 降至 7.92。"
+    },
+    {
+      "id": "eval_02_ph_baseline",
+      "paper_id": "eval_02_ocean_ph",
+      "query": "摘要中提到的当前北太平洋表层 pH 基准值是多少？",
       "passed": true,
       "scope_ok": true,
       "missing_tokens": [],
       "paper_ids_in_citations": [
         "eval_02_ocean_ph"
       ],
-      "elapsed_s": 12.4,
-      "answer_preview": "这篇海洋酸化论文的摘要中提到，至2050年，北太平洋表层pH将降至7.92。 [16]",
-      "reference_answer": "预测到 2050 年北太平洋表层 pH 将从 8.10 降至 7.92。"
+      "elapsed_s": 7.3,
+      "answer_preview": "摘要中提到的当前北太平洋表层 pH 基准值是 8.10 [2]。",
+      "reference_answer": "基准 pH 为 8.10。"
+    },
+    {
+      "id": "eval_03_tps",
+      "paper_id": "eval_03_blockchain_scm",
+      "query": "该供应链区块链论文摘要中的峰值吞吐量是多少 TPS？",
+      "passed": true,
+      "scope_ok": true,
+      "missing_tokens": [],
+      "paper_ids_in_citations": [
+        "eval_03_blockchain_scm"
+      ],
+      "elapsed_s": 8.2,
+      "answer_preview": "根据证据一，该供应链区块链论文摘要中的峰值吞吐量是1200 TPS。",
+      "reference_answer": "峰值吞吐量为 1200 TPS。"
+    },
+    {
+      "id": "eval_03_platform",
+      "paper_id": "eval_03_blockchain_scm",
+      "query": "摘要采用什么区块链平台架构？",
+      "passed": true,
+      "scope_ok": true,
+      "missing_tokens": [],
+      "paper_ids_in_citations": [
+        "eval_03_blockchain_scm"
+      ],
+      "elapsed_s": 7.8,
+      "answer_preview": "摘要采用了 Hyperledger Fabric 这种联盟链架构 [2, 3]。",
+      "reference_answer": "基于 Hyperledger Fabric 的供应链溯源架构。"
+    },
+    {
+      "id": "eval_04_dice",
+      "paper_id": "eval_04_mri_glioma",
+      "query": "这篇 MRI 胶质瘤分割论文摘要中的平均 Dice 系数是多少？",
+      "passed": true,
+      "scope_ok": true,
+      "missing_tokens": [],
+      "paper_ids_in_citations": [
+        "eval_04_mri_glioma"
+      ],
+      "elapsed_s": 9.0,
+      "answer_preview": "这篇 MRI 胶质瘤分割论文摘要中的平均 Dice 系数是 0.89。",
+      "reference_answer": "五折交叉验证平均 Dice 系数为 0.89。"
+    },
+    {
+      "id": "eval_04_method",
+      "paper_id": "eval_04_mri_glioma",
+      "query": "摘要使用什么网络进行脑胶质瘤分割？",
+      "passed": true,
+      "scope_ok": true,
+      "missing_tokens": [],
+      "paper_ids_in_citations": [
+        "eval_04_mri_glioma"
+      ],
+      "elapsed_s": 6.8,
+      "answer_preview": "摘要使用3D U-Net进行脑胶质瘤分割。",
+      "reference_answer": "采用 3D U-Net 进行自动分割。"
+    },
+    {
+      "id": "eval_05_power",
+      "paper_id": "eval_05_wind_turbine",
+      "query": "该海上风电论文摘要中样机的额定功率是多少？",
+      "passed": true,
+      "scope_ok": true,
+      "missing_tokens": [],
+      "paper_ids_in_citations": [
+        "eval_05_wind_turbine"
+      ],
+      "elapsed_s": 8.2,
+      "answer_preview": "该海上风电论文摘要中的样机的额定功率是4.2 MW。参考证据 [2]。",
+      "reference_answer": "样机额定功率为 4.2 MW。"
+    },
+    {
+      "id": "eval_05_hours",
+      "paper_id": "eval_05_wind_turbine",
+      "query": "摘要提到的年等效满发小时数是多少？",
+      "passed": true,
+      "scope_ok": true,
+      "missing_tokens": [],
+      "paper_ids_in_citations": [
+        "eval_05_wind_turbine"
+      ],
+      "elapsed_s": 9.2,
+      "answer_preview": "论文摘要提到的年等效满发小时数为4120 h。",
+      "reference_answer": "年等效满发小时数为 4120 h。"
+    },
+    {
+      "id": "eval_06_f1",
+      "paper_id": "eval_06_nlp_sentiment",
+      "query": "这篇双语情感分类论文摘要中的宏平均 F1 是多少？",
+      "passed": true,
+      "scope_ok": true,
+      "missing_tokens": [],
+      "paper_ids_in_citations": [
+        "eval_06_nlp_sentiment"
+      ],
+      "elapsed_s": 7.8,
+      "answer_preview": "这篇双语情感分类论文摘要中的宏平均 F1 的具体数值是 0.91。",
+      "reference_answer": "宏平均 F1 分数达到 0.91。"
+    },
+    {
+      "id": "eval_06_corpus",
+      "paper_id": "eval_06_nlp_sentiment",
+      "query": "摘要中训练语料大约有多少条？",
+      "passed": true,
+      "scope_ok": true,
+      "missing_tokens": [],
+      "paper_ids_in_citations": [
+        "eval_06_nlp_sentiment"
+      ],
+      "elapsed_s": 6.7,
+      "answer_preview": "摘要中训练的双语评论数量约为58万条。",
+      "reference_answer": "训练语料 58 万条。"
+    },
+    {
+      "id": "eval_07_density",
+      "paper_id": "eval_07_battery_solid",
+      "query": "该固态锂电池论文摘要中的质量能量密度是多少 Wh/kg？",
+      "passed": true,
+      "scope_ok": true,
+      "missing_tokens": [],
+      "paper_ids_in_citations": [
+        "eval_07_battery_solid"
+      ],
+      "elapsed_s": 8.7,
+      "answer_preview": "该固态锂电池论文摘要中提到的质量能量密度是380 Wh/kg。",
+      "reference_answer": "质量能量密度为 380 Wh/kg。"
+    },
+    {
+      "id": "eval_07_cycles",
+      "paper_id": "eval_07_battery_solid",
+      "query": "摘要中 500 次循环后的容量保持率是多少？",
+      "passed": true,
+      "scope_ok": true,
+      "missing_tokens": [],
+      "paper_ids_in_citations": [
+        "eval_07_battery_solid"
+      ],
+      "elapsed_s": 8.7,
+      "answer_preview": "摘要中 500 次循环后的容量保持率为 92%。这个信息来自论文《eval_07_battery_solid》，在实验结果部分的第2页。",
+      "reference_answer": "循环 500 次容量保持率 92%。"
+    },
+    {
+      "id": "eval_08_delay",
+      "paper_id": "eval_08_urban_traffic",
+      "query": "这篇城市交通信号论文摘要中高峰延误降低了百分之多少？",
+      "passed": true,
+      "scope_ok": true,
+      "missing_tokens": [],
+      "paper_ids_in_citations": [
+        "eval_08_urban_traffic"
+      ],
+      "elapsed_s": 7.5,
+      "answer_preview": "这篇城市交通信号论文的摘要提到，高峰行程延误降低了18%。",
+      "reference_answer": "高峰时段平均行程延误降低 18%。"
+    },
+    {
+      "id": "eval_08_simulator",
+      "paper_id": "eval_08_urban_traffic",
+      "query": "摘要中的仿真环境使用什么工具？",
+      "passed": false,
+      "scope_ok": false,
+      "missing_tokens": [
+        "SUMO"
+      ],
+      "paper_ids_in_citations": [],
+      "elapsed_s": 6.8,
+      "answer_preview": "没有找到关于摘要中使用的仿真环境所用工具的相关证据。",
+      "reference_answer": "仿真环境为 SUMO 北京五环内路网。"
+    },
+    {
+      "id": "eval_09_rmsd",
+      "paper_id": "eval_09_protein_folding",
+      "query": "该蛋白质结构预测论文摘要中的平均 RMSD 是多少？",
+      "passed": true,
+      "scope_ok": true,
+      "missing_tokens": [],
+      "paper_ids_in_citations": [
+        "eval_09_protein_folding"
+      ],
+      "elapsed_s": 7.0,
+      "answer_preview": "根据证据二，当靶标类型为平均的情况下，RMSD (Å) 的值是1.2。因此，该蛋白质结构预测论文摘要中的平均 RMSD 是1.2 Å。",
+      "reference_answer": "平均 RMSD 为 1.2 Å。"
+    },
+    {
+      "id": "eval_09_benchmark",
+      "paper_id": "eval_09_protein_folding",
+      "query": "摘要在哪个靶蛋白子集上评估？",
+      "passed": true,
+      "scope_ok": true,
+      "missing_tokens": [],
+      "paper_ids_in_citations": [
+        "eval_09_protein_folding"
+      ],
+      "elapsed_s": 8.2,
+      "answer_preview": "论文摘要评估的靶蛋白子集是CASP15靶蛋白子集。",
+      "reference_answer": "在 CASP15 靶蛋白子集上评估。"
+    },
+    {
+      "id": "eval_10_threshold",
+      "paper_id": "eval_10_quantum_error",
+      "query": "这篇量子纠错论文摘要中物理错误率阈值是多少？",
+      "passed": false,
+      "scope_ok": false,
+      "missing_tokens": [
+        "0.7"
+      ],
+      "paper_ids_in_citations": [],
+      "elapsed_s": 8.0,
+      "answer_preview": "目前没有找到相关的证据来回答这个问题。",
+      "reference_answer": "物理错误率 0.7% 以下时逻辑错误率随码距指数衰减。"
+    },
+    {
+      "id": "eval_10_code",
+      "paper_id": "eval_10_quantum_error",
+      "query": "摘要研究采用什么量子纠错码？",
+      "passed": false,
+      "scope_ok": false,
+      "missing_tokens": [
+        "表面码"
+      ],
+      "paper_ids_in_citations": [],
+      "elapsed_s": 7.8,
+      "answer_preview": "目前没有找到关于摘要研究所使用的具体量子纠错码的相关证据。",
+      "reference_answer": "研究超导量子比特在表面码纠错下的逻辑错误率。"
     }
   ]
 }

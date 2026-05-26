@@ -336,10 +336,11 @@ make dev                                # backend :8000 + frontend dev server :5
 ```bash
 cd backend
 
-# Retrieval: Recall@k, Precision@k, MRR, MAP
-python eval/eval_retrieval.py
+# Retrieval (scope_eval_dataset.json + relevant_ids): preview → label → ablation
+python scripts/retrieval_eval_preview.py --id eval_01_abstract_efficiency
+python scripts/run_retrieval_eval.py
 
-# Session scope (paper_id filter): must_contain + citation scope
+# Session scope (end-to-end Agent): must_contain + citation scope
 python scripts/run_scope_eval.py
 ```
 

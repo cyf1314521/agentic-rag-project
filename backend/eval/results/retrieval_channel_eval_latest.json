@@ -1,0 +1,3214 @@
+{
+  "timestamp": "2026-05-26T07:46:19.100974+00:00",
+  "dataset": "eval/fixtures/scope_eval_dataset.json",
+  "mode": "chunk_id",
+  "settings": {
+    "k": 5,
+    "fetch_k": 20,
+    "rrf_k": 60
+  },
+  "cases_total": 20,
+  "cases_with_relevant_ids": 20,
+  "configs": {
+    "channel_hybrid": {
+      "recall@5": 0.8167,
+      "precision@5": 0.34,
+      "mrr": 0.77,
+      "map": 0.7367,
+      "contamination@k": 0.39,
+      "num_queries": 20,
+      "num_skipped": 0,
+      "retrieve_options": {
+        "rerank": true,
+        "expand_parent": true,
+        "search_mode": "hybrid"
+      },
+      "paper_filter_mode": "multi_paper"
+    },
+    "channel_dense": {
+      "recall@5": 0.75,
+      "precision@5": 0.3,
+      "mrr": 0.77,
+      "map": 0.67,
+      "contamination@k": 0.42,
+      "num_queries": 20,
+      "num_skipped": 0,
+      "retrieve_options": {
+        "rerank": true,
+        "expand_parent": true,
+        "search_mode": "dense"
+      },
+      "paper_filter_mode": "multi_paper"
+    },
+    "channel_bm25": {
+      "recall@5": 0.3833,
+      "precision@5": 0.23,
+      "mrr": 0.4,
+      "map": 0.3833,
+      "contamination@k": 0.0,
+      "num_queries": 20,
+      "num_skipped": 0,
+      "retrieve_options": {
+        "rerank": true,
+        "expand_parent": true,
+        "search_mode": "sparse"
+      },
+      "paper_filter_mode": "multi_paper"
+    },
+    "channel_hybrid_raw": {
+      "recall@5": 0.3583,
+      "precision@5": 0.19,
+      "mrr": 0.325,
+      "map": 0.2628,
+      "contamination@k": 0.53,
+      "num_queries": 20,
+      "num_skipped": 0,
+      "retrieve_options": {
+        "rerank": false,
+        "expand_parent": true,
+        "search_mode": "hybrid"
+      },
+      "paper_filter_mode": "multi_paper"
+    },
+    "channel_dense_raw": {
+      "recall@5": 0.2583,
+      "precision@5": 0.13,
+      "mrr": 0.3417,
+      "map": 0.1875,
+      "contamination@k": 0.58,
+      "num_queries": 20,
+      "num_skipped": 0,
+      "retrieve_options": {
+        "rerank": false,
+        "expand_parent": true,
+        "search_mode": "dense"
+      },
+      "paper_filter_mode": "multi_paper"
+    },
+    "channel_bm25_raw": {
+      "recall@5": 0.3833,
+      "precision@5": 0.23,
+      "mrr": 0.2917,
+      "map": 0.2692,
+      "contamination@k": 0.0,
+      "num_queries": 20,
+      "num_skipped": 0,
+      "retrieve_options": {
+        "rerank": false,
+        "expand_parent": true,
+        "search_mode": "sparse"
+      },
+      "paper_filter_mode": "multi_paper"
+    }
+  },
+  "per_case": [
+    {
+      "id": "eval_01_abstract_efficiency",
+      "paper_id": "eval_01_solar_pv",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "37feb697-0b8e-4504-a710-6dd103b8641a",
+            "eede8acd-d2a4-4997-945f-413238ba524e",
+            "51ab7759-057e-4ee9-9304-6adebaab90c9",
+            "251c0bb0-fc45-4696-a8a6-d43fb5daf38d",
+            "383b608c-f275-4507-8471-842f00217b50"
+          ],
+          "retrieved_paper_ids": [
+            "eval_01_solar_pv",
+            "eval_01_solar_pv",
+            "eval_01_solar_pv",
+            "eval_01_solar_pv",
+            "eval_01_solar_pv"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "37feb697-0b8e-4504-a710-6dd103b8641a"
+          ],
+          "recall": 1.0,
+          "precision": 0.2,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "37feb697-0b8e-4504-a710-6dd103b8641a",
+            "eede8acd-d2a4-4997-945f-413238ba524e",
+            "51ab7759-057e-4ee9-9304-6adebaab90c9",
+            "251c0bb0-fc45-4696-a8a6-d43fb5daf38d",
+            "383b608c-f275-4507-8471-842f00217b50"
+          ],
+          "retrieved_paper_ids": [
+            "eval_01_solar_pv",
+            "eval_01_solar_pv",
+            "eval_01_solar_pv",
+            "eval_01_solar_pv",
+            "eval_01_solar_pv"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "37feb697-0b8e-4504-a710-6dd103b8641a"
+          ],
+          "recall": 1.0,
+          "precision": 0.2,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_bm25": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "37feb697-0b8e-4504-a710-6dd103b8641a"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "eede8acd-d2a4-4997-945f-413238ba524e",
+            "37feb697-0b8e-4504-a710-6dd103b8641a",
+            "58531936-ca3a-4b53-b0c2-4b0dff6c8b30",
+            "383b608c-f275-4507-8471-842f00217b50",
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de"
+          ],
+          "retrieved_paper_ids": [
+            "eval_01_solar_pv",
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph",
+            "eval_01_solar_pv",
+            "eval_10_quantum_error"
+          ],
+          "contamination@k": 0.4,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "37feb697-0b8e-4504-a710-6dd103b8641a"
+          ],
+          "recall": 1.0,
+          "precision": 0.2,
+          "mrr": 0.5,
+          "map": 0.5
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "eede8acd-d2a4-4997-945f-413238ba524e",
+            "37feb697-0b8e-4504-a710-6dd103b8641a",
+            "58531936-ca3a-4b53-b0c2-4b0dff6c8b30",
+            "383b608c-f275-4507-8471-842f00217b50",
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de"
+          ],
+          "retrieved_paper_ids": [
+            "eval_01_solar_pv",
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph",
+            "eval_01_solar_pv",
+            "eval_10_quantum_error"
+          ],
+          "contamination@k": 0.4,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "37feb697-0b8e-4504-a710-6dd103b8641a"
+          ],
+          "recall": 1.0,
+          "precision": 0.2,
+          "mrr": 0.5,
+          "map": 0.5
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "37feb697-0b8e-4504-a710-6dd103b8641a"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        }
+      },
+      "scope_passed": false,
+      "scope_missing_tokens": [
+        "NREL"
+      ]
+    },
+    {
+      "id": "eval_01_abstract_topic",
+      "paper_id": "eval_01_solar_pv",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "37feb697-0b8e-4504-a710-6dd103b8641a",
+            "eede8acd-d2a4-4997-945f-413238ba524e",
+            "cfdfc27f-37da-4347-976e-758ad8c90b8c",
+            "c510f094-8235-4de0-8420-8c1dc6b38776",
+            "4d46f10d-62eb-4cfa-a031-47b68f38016f"
+          ],
+          "retrieved_paper_ids": [
+            "eval_01_solar_pv",
+            "eval_01_solar_pv",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_05_wind_turbine"
+          ],
+          "contamination@k": 0.6,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "37feb697-0b8e-4504-a710-6dd103b8641a",
+            "eede8acd-d2a4-4997-945f-413238ba524e",
+            "383b608c-f275-4507-8471-842f00217b50"
+          ],
+          "recall": 0.6667,
+          "precision": 0.4,
+          "mrr": 1.0,
+          "map": 0.6667
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "37feb697-0b8e-4504-a710-6dd103b8641a",
+            "eede8acd-d2a4-4997-945f-413238ba524e",
+            "cfdfc27f-37da-4347-976e-758ad8c90b8c",
+            "c510f094-8235-4de0-8420-8c1dc6b38776",
+            "4d46f10d-62eb-4cfa-a031-47b68f38016f"
+          ],
+          "retrieved_paper_ids": [
+            "eval_01_solar_pv",
+            "eval_01_solar_pv",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_05_wind_turbine"
+          ],
+          "contamination@k": 0.6,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "37feb697-0b8e-4504-a710-6dd103b8641a",
+            "eede8acd-d2a4-4997-945f-413238ba524e",
+            "383b608c-f275-4507-8471-842f00217b50"
+          ],
+          "recall": 0.6667,
+          "precision": 0.4,
+          "mrr": 1.0,
+          "map": 0.6667
+        },
+        "channel_bm25": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "37feb697-0b8e-4504-a710-6dd103b8641a",
+            "eede8acd-d2a4-4997-945f-413238ba524e",
+            "383b608c-f275-4507-8471-842f00217b50"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de",
+            "3ead1cb9-ed57-4d8b-89a2-4c3b737b070a",
+            "8e16823c-6e00-4134-8b57-4b4486cabd09",
+            "73510190-2822-4080-8113-a3b088c8a3c7"
+          ],
+          "retrieved_paper_ids": [
+            "eval_03_blockchain_scm",
+            "eval_10_quantum_error",
+            "eval_03_blockchain_scm",
+            "eval_04_mri_glioma",
+            "eval_06_nlp_sentiment"
+          ],
+          "contamination@k": 1.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "37feb697-0b8e-4504-a710-6dd103b8641a",
+            "eede8acd-d2a4-4997-945f-413238ba524e",
+            "383b608c-f275-4507-8471-842f00217b50"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de",
+            "3ead1cb9-ed57-4d8b-89a2-4c3b737b070a",
+            "8e16823c-6e00-4134-8b57-4b4486cabd09",
+            "73510190-2822-4080-8113-a3b088c8a3c7"
+          ],
+          "retrieved_paper_ids": [
+            "eval_03_blockchain_scm",
+            "eval_10_quantum_error",
+            "eval_03_blockchain_scm",
+            "eval_04_mri_glioma",
+            "eval_06_nlp_sentiment"
+          ],
+          "contamination@k": 1.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "37feb697-0b8e-4504-a710-6dd103b8641a",
+            "eede8acd-d2a4-4997-945f-413238ba524e",
+            "383b608c-f275-4507-8471-842f00217b50"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "37feb697-0b8e-4504-a710-6dd103b8641a",
+            "eede8acd-d2a4-4997-945f-413238ba524e",
+            "383b608c-f275-4507-8471-842f00217b50"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        }
+      },
+      "scope_passed": true,
+      "scope_missing_tokens": []
+    },
+    {
+      "id": "eval_02_ph_projection",
+      "paper_id": "eval_02_ocean_ph",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "30c6d408-cab0-4ad1-8833-bb43aa348459",
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "13876c85-511c-496b-9383-f2af3a5ec358",
+            "9c01b627-eba3-4a0c-ab00-ad5e9c4ff57a"
+          ],
+          "retrieved_paper_ids": [
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "30c6d408-cab0-4ad1-8833-bb43aa348459",
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "30c6d408-cab0-4ad1-8833-bb43aa348459",
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "13876c85-511c-496b-9383-f2af3a5ec358",
+            "9c01b627-eba3-4a0c-ab00-ad5e9c4ff57a"
+          ],
+          "retrieved_paper_ids": [
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "30c6d408-cab0-4ad1-8833-bb43aa348459",
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_bm25": {
+          "retrieved_ids": [
+            "30c6d408-cab0-4ad1-8833-bb43aa348459",
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "13876c85-511c-496b-9383-f2af3a5ec358",
+            "9c01b627-eba3-4a0c-ab00-ad5e9c4ff57a"
+          ],
+          "retrieved_paper_ids": [
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "30c6d408-cab0-4ad1-8833-bb43aa348459",
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "13876c85-511c-496b-9383-f2af3a5ec358",
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "83d0c8d1-8c93-4f65-8779-14a452ed115c",
+            "30c6d408-cab0-4ad1-8833-bb43aa348459",
+            "58531936-ca3a-4b53-b0c2-4b0dff6c8b30"
+          ],
+          "retrieved_paper_ids": [
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "30c6d408-cab0-4ad1-8833-bb43aa348459",
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4"
+          ],
+          "recall": 0.6667,
+          "precision": 0.4,
+          "mrr": 0.5,
+          "map": 0.3333
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "13876c85-511c-496b-9383-f2af3a5ec358",
+            "12b3d943-f1b3-48f7-b899-86d961ed4365",
+            "58531936-ca3a-4b53-b0c2-4b0dff6c8b30",
+            "83d0c8d1-8c93-4f65-8779-14a452ed115c"
+          ],
+          "retrieved_paper_ids": [
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "30c6d408-cab0-4ad1-8833-bb43aa348459",
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4"
+          ],
+          "recall": 0.3333,
+          "precision": 0.2,
+          "mrr": 1.0,
+          "map": 0.3333
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [
+            "13876c85-511c-496b-9383-f2af3a5ec358",
+            "30c6d408-cab0-4ad1-8833-bb43aa348459",
+            "c86ade26-5458-4a37-8665-ac96360026d9",
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "b17d2917-d064-4ef7-a121-09b75165e108"
+          ],
+          "retrieved_paper_ids": [
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "30c6d408-cab0-4ad1-8833-bb43aa348459",
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 0.5,
+          "map": 0.5333
+        }
+      },
+      "scope_passed": false,
+      "scope_missing_tokens": [
+        "7.92"
+      ]
+    },
+    {
+      "id": "eval_02_ph_baseline",
+      "paper_id": "eval_02_ocean_ph",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "30c6d408-cab0-4ad1-8833-bb43aa348459",
+            "83d0c8d1-8c93-4f65-8779-14a452ed115c",
+            "9c01b627-eba3-4a0c-ab00-ad5e9c4ff57a"
+          ],
+          "retrieved_paper_ids": [
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "c86ade26-5458-4a37-8665-ac96360026d9"
+          ],
+          "recall": 0.6667,
+          "precision": 0.4,
+          "mrr": 1.0,
+          "map": 0.6667
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "30c6d408-cab0-4ad1-8833-bb43aa348459",
+            "83d0c8d1-8c93-4f65-8779-14a452ed115c",
+            "9c01b627-eba3-4a0c-ab00-ad5e9c4ff57a"
+          ],
+          "retrieved_paper_ids": [
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "c86ade26-5458-4a37-8665-ac96360026d9"
+          ],
+          "recall": 0.6667,
+          "precision": 0.4,
+          "mrr": 1.0,
+          "map": 0.6667
+        },
+        "channel_bm25": {
+          "retrieved_ids": [
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "30c6d408-cab0-4ad1-8833-bb43aa348459",
+            "83d0c8d1-8c93-4f65-8779-14a452ed115c",
+            "9c01b627-eba3-4a0c-ab00-ad5e9c4ff57a"
+          ],
+          "retrieved_paper_ids": [
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "c86ade26-5458-4a37-8665-ac96360026d9"
+          ],
+          "recall": 0.6667,
+          "precision": 0.4,
+          "mrr": 1.0,
+          "map": 0.6667
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "83d0c8d1-8c93-4f65-8779-14a452ed115c",
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "30c6d408-cab0-4ad1-8833-bb43aa348459",
+            "58531936-ca3a-4b53-b0c2-4b0dff6c8b30",
+            "f11e1a8c-2838-49a1-bbda-86835b7ee1d5"
+          ],
+          "retrieved_paper_ids": [
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "c86ade26-5458-4a37-8665-ac96360026d9"
+          ],
+          "recall": 0.3333,
+          "precision": 0.2,
+          "mrr": 0.5,
+          "map": 0.1667
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "83d0c8d1-8c93-4f65-8779-14a452ed115c",
+            "58531936-ca3a-4b53-b0c2-4b0dff6c8b30",
+            "12b3d943-f1b3-48f7-b899-86d961ed4365",
+            "f11e1a8c-2838-49a1-bbda-86835b7ee1d5"
+          ],
+          "retrieved_paper_ids": [
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "c86ade26-5458-4a37-8665-ac96360026d9"
+          ],
+          "recall": 0.3333,
+          "precision": 0.2,
+          "mrr": 1.0,
+          "map": 0.3333
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [
+            "83d0c8d1-8c93-4f65-8779-14a452ed115c",
+            "c86ade26-5458-4a37-8665-ac96360026d9",
+            "30c6d408-cab0-4ad1-8833-bb43aa348459",
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "9c01b627-eba3-4a0c-ab00-ad5e9c4ff57a"
+          ],
+          "retrieved_paper_ids": [
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "b17d2917-d064-4ef7-a121-09b75165e108",
+            "ab837454-7e8b-442b-a901-f62770a49be4",
+            "c86ade26-5458-4a37-8665-ac96360026d9"
+          ],
+          "recall": 0.6667,
+          "precision": 0.4,
+          "mrr": 0.5,
+          "map": 0.3333
+        }
+      },
+      "scope_passed": true,
+      "scope_missing_tokens": []
+    },
+    {
+      "id": "eval_03_tps",
+      "paper_id": "eval_03_blockchain_scm",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "6dac6b12-633b-4f04-96a5-139eb4b1f333",
+            "3c26f35e-19e1-41d5-8883-e679f6d3b546",
+            "3b19811e-acb9-4995-9640-360fc1c9eb5a",
+            "c67db7ea-430f-4f29-838c-3a9ca659c3d6"
+          ],
+          "retrieved_paper_ids": [
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "6dac6b12-633b-4f04-96a5-139eb4b1f333",
+            "3c26f35e-19e1-41d5-8883-e679f6d3b546"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "6dac6b12-633b-4f04-96a5-139eb4b1f333",
+            "3c26f35e-19e1-41d5-8883-e679f6d3b546",
+            "98d027b7-8a1a-494b-959e-71bcf7c8bd13",
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de"
+          ],
+          "retrieved_paper_ids": [
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm",
+            "eval_10_quantum_error"
+          ],
+          "contamination@k": 0.2,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "6dac6b12-633b-4f04-96a5-139eb4b1f333",
+            "3c26f35e-19e1-41d5-8883-e679f6d3b546"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_bm25": {
+          "retrieved_ids": [
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "6dac6b12-633b-4f04-96a5-139eb4b1f333",
+            "3c26f35e-19e1-41d5-8883-e679f6d3b546",
+            "3b19811e-acb9-4995-9640-360fc1c9eb5a",
+            "c67db7ea-430f-4f29-838c-3a9ca659c3d6"
+          ],
+          "retrieved_paper_ids": [
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "6dac6b12-633b-4f04-96a5-139eb4b1f333",
+            "3c26f35e-19e1-41d5-8883-e679f6d3b546"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "6dac6b12-633b-4f04-96a5-139eb4b1f333",
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "3c26f35e-19e1-41d5-8883-e679f6d3b546",
+            "c67db7ea-430f-4f29-838c-3a9ca659c3d6",
+            "c510f094-8235-4de0-8420-8c1dc6b38776"
+          ],
+          "retrieved_paper_ids": [
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm",
+            "eval_07_battery_solid"
+          ],
+          "contamination@k": 0.2,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "6dac6b12-633b-4f04-96a5-139eb4b1f333",
+            "3c26f35e-19e1-41d5-8883-e679f6d3b546"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "6dac6b12-633b-4f04-96a5-139eb4b1f333",
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "c510f094-8235-4de0-8420-8c1dc6b38776",
+            "383b608c-f275-4507-8471-842f00217b50",
+            "7617018f-a7b3-426f-8dfa-da405b631d78"
+          ],
+          "retrieved_paper_ids": [
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm",
+            "eval_07_battery_solid",
+            "eval_01_solar_pv",
+            "eval_09_protein_folding"
+          ],
+          "contamination@k": 0.6,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "6dac6b12-633b-4f04-96a5-139eb4b1f333",
+            "3c26f35e-19e1-41d5-8883-e679f6d3b546"
+          ],
+          "recall": 0.6667,
+          "precision": 0.4,
+          "mrr": 1.0,
+          "map": 0.6667
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [
+            "6dac6b12-633b-4f04-96a5-139eb4b1f333",
+            "c67db7ea-430f-4f29-838c-3a9ca659c3d6",
+            "3c26f35e-19e1-41d5-8883-e679f6d3b546",
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "3b19811e-acb9-4995-9640-360fc1c9eb5a"
+          ],
+          "retrieved_paper_ids": [
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm",
+            "eval_03_blockchain_scm"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "6dac6b12-633b-4f04-96a5-139eb4b1f333",
+            "3c26f35e-19e1-41d5-8883-e679f6d3b546"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 0.8056
+        }
+      },
+      "scope_passed": true,
+      "scope_missing_tokens": []
+    },
+    {
+      "id": "eval_03_platform",
+      "paper_id": "eval_03_blockchain_scm",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "70485d68-acd4-47bd-ba47-0ac600711359",
+            "ec7741e4-9a2b-41d0-ab8d-090a651ce156",
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd",
+            "e3462390-b0f2-43b5-9acf-eea1e06b4442",
+            "7b8904a1-2577-42fd-b8cc-71daecf63a81"
+          ],
+          "retrieved_paper_ids": [
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph",
+            "eval_05_wind_turbine",
+            "eval_09_protein_folding",
+            "eval_10_quantum_error"
+          ],
+          "contamination@k": 1.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "10bcea54-3ee3-489b-917d-2cd05f3838e8"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "70485d68-acd4-47bd-ba47-0ac600711359",
+            "ec7741e4-9a2b-41d0-ab8d-090a651ce156",
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd",
+            "e3462390-b0f2-43b5-9acf-eea1e06b4442",
+            "7b8904a1-2577-42fd-b8cc-71daecf63a81"
+          ],
+          "retrieved_paper_ids": [
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph",
+            "eval_05_wind_turbine",
+            "eval_09_protein_folding",
+            "eval_10_quantum_error"
+          ],
+          "contamination@k": 1.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "10bcea54-3ee3-489b-917d-2cd05f3838e8"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_bm25": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "10bcea54-3ee3-489b-917d-2cd05f3838e8"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "48f69640-f94c-4716-a2f0-626b6fd3a667",
+            "953c697e-d1d1-4699-93e0-57a538b2065e",
+            "5cfb98cc-08fa-41fd-b626-956e451cf7a1",
+            "e76bb4a5-9ee5-47ea-92de-645d8286213e",
+            "b515aa38-c481-4ac1-9d26-10becfe222e0"
+          ],
+          "retrieved_paper_ids": [
+            "eval_04_mri_glioma",
+            "eval_06_nlp_sentiment",
+            "eval_08_urban_traffic",
+            "eval_03_blockchain_scm",
+            "eval_07_battery_solid"
+          ],
+          "contamination@k": 0.8,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "10bcea54-3ee3-489b-917d-2cd05f3838e8"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "48f69640-f94c-4716-a2f0-626b6fd3a667",
+            "953c697e-d1d1-4699-93e0-57a538b2065e",
+            "5cfb98cc-08fa-41fd-b626-956e451cf7a1",
+            "e76bb4a5-9ee5-47ea-92de-645d8286213e",
+            "b515aa38-c481-4ac1-9d26-10becfe222e0"
+          ],
+          "retrieved_paper_ids": [
+            "eval_04_mri_glioma",
+            "eval_06_nlp_sentiment",
+            "eval_08_urban_traffic",
+            "eval_03_blockchain_scm",
+            "eval_07_battery_solid"
+          ],
+          "contamination@k": 0.8,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "10bcea54-3ee3-489b-917d-2cd05f3838e8"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "10bcea54-3ee3-489b-917d-2cd05f3838e8"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        }
+      },
+      "scope_passed": true,
+      "scope_missing_tokens": []
+    },
+    {
+      "id": "eval_04_dice",
+      "paper_id": "eval_04_mri_glioma",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "c9c8b9af-2da5-4460-b1b4-6174621796f1",
+            "7edf59af-8748-452b-ae3e-9c3b62143da5",
+            "a9cba948-5cdb-4e6b-b216-1d4ebd86a3e7",
+            "565f5c96-80dd-48ad-8ea7-1b71c44ba8de",
+            "af11c7b2-e291-4d85-a41a-9550602b1fde"
+          ],
+          "retrieved_paper_ids": [
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "c9c8b9af-2da5-4460-b1b4-6174621796f1",
+            "7edf59af-8748-452b-ae3e-9c3b62143da5",
+            "a9cba948-5cdb-4e6b-b216-1d4ebd86a3e7"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "c9c8b9af-2da5-4460-b1b4-6174621796f1",
+            "7edf59af-8748-452b-ae3e-9c3b62143da5",
+            "a9cba948-5cdb-4e6b-b216-1d4ebd86a3e7",
+            "565f5c96-80dd-48ad-8ea7-1b71c44ba8de",
+            "af11c7b2-e291-4d85-a41a-9550602b1fde"
+          ],
+          "retrieved_paper_ids": [
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "c9c8b9af-2da5-4460-b1b4-6174621796f1",
+            "7edf59af-8748-452b-ae3e-9c3b62143da5",
+            "a9cba948-5cdb-4e6b-b216-1d4ebd86a3e7"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_bm25": {
+          "retrieved_ids": [
+            "c9c8b9af-2da5-4460-b1b4-6174621796f1",
+            "7edf59af-8748-452b-ae3e-9c3b62143da5",
+            "a9cba948-5cdb-4e6b-b216-1d4ebd86a3e7",
+            "565f5c96-80dd-48ad-8ea7-1b71c44ba8de",
+            "af11c7b2-e291-4d85-a41a-9550602b1fde"
+          ],
+          "retrieved_paper_ids": [
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "c9c8b9af-2da5-4460-b1b4-6174621796f1",
+            "7edf59af-8748-452b-ae3e-9c3b62143da5",
+            "a9cba948-5cdb-4e6b-b216-1d4ebd86a3e7"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "a9cba948-5cdb-4e6b-b216-1d4ebd86a3e7",
+            "7edf59af-8748-452b-ae3e-9c3b62143da5",
+            "3edc2f34-1f6f-4400-af9f-1c41ac9635f7",
+            "c9c8b9af-2da5-4460-b1b4-6174621796f1",
+            "c5343605-5130-4c1c-b00d-26522551c1ca"
+          ],
+          "retrieved_paper_ids": [
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "c9c8b9af-2da5-4460-b1b4-6174621796f1",
+            "7edf59af-8748-452b-ae3e-9c3b62143da5",
+            "a9cba948-5cdb-4e6b-b216-1d4ebd86a3e7"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 0.9167
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "7edf59af-8748-452b-ae3e-9c3b62143da5",
+            "a9cba948-5cdb-4e6b-b216-1d4ebd86a3e7",
+            "a32da7bb-eaa7-4ab9-bc51-fb0244a7e8ad",
+            "3edc2f34-1f6f-4400-af9f-1c41ac9635f7",
+            "c5343605-5130-4c1c-b00d-26522551c1ca"
+          ],
+          "retrieved_paper_ids": [
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "c9c8b9af-2da5-4460-b1b4-6174621796f1",
+            "7edf59af-8748-452b-ae3e-9c3b62143da5",
+            "a9cba948-5cdb-4e6b-b216-1d4ebd86a3e7"
+          ],
+          "recall": 0.6667,
+          "precision": 0.4,
+          "mrr": 1.0,
+          "map": 0.6667
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [
+            "a9cba948-5cdb-4e6b-b216-1d4ebd86a3e7",
+            "7edf59af-8748-452b-ae3e-9c3b62143da5",
+            "c9c8b9af-2da5-4460-b1b4-6174621796f1",
+            "3edc2f34-1f6f-4400-af9f-1c41ac9635f7",
+            "c5343605-5130-4c1c-b00d-26522551c1ca"
+          ],
+          "retrieved_paper_ids": [
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma",
+            "eval_04_mri_glioma"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "c9c8b9af-2da5-4460-b1b4-6174621796f1",
+            "7edf59af-8748-452b-ae3e-9c3b62143da5",
+            "a9cba948-5cdb-4e6b-b216-1d4ebd86a3e7"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        }
+      },
+      "scope_passed": true,
+      "scope_missing_tokens": []
+    },
+    {
+      "id": "eval_04_method",
+      "paper_id": "eval_04_mri_glioma",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd",
+            "e3462390-b0f2-43b5-9acf-eea1e06b4442",
+            "7b8904a1-2577-42fd-b8cc-71daecf63a81",
+            "10bcea54-3ee3-489b-917d-2cd05f3838e8",
+            "1485cb3f-53fa-4d5e-96bb-a2977c56c29b"
+          ],
+          "retrieved_paper_ids": [
+            "eval_05_wind_turbine",
+            "eval_09_protein_folding",
+            "eval_10_quantum_error",
+            "eval_03_blockchain_scm",
+            "eval_04_mri_glioma"
+          ],
+          "contamination@k": 0.8,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "1485cb3f-53fa-4d5e-96bb-a2977c56c29b"
+          ],
+          "recall": 1.0,
+          "precision": 0.2,
+          "mrr": 0.2,
+          "map": 0.2
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd",
+            "e3462390-b0f2-43b5-9acf-eea1e06b4442",
+            "7b8904a1-2577-42fd-b8cc-71daecf63a81",
+            "10bcea54-3ee3-489b-917d-2cd05f3838e8",
+            "1485cb3f-53fa-4d5e-96bb-a2977c56c29b"
+          ],
+          "retrieved_paper_ids": [
+            "eval_05_wind_turbine",
+            "eval_09_protein_folding",
+            "eval_10_quantum_error",
+            "eval_03_blockchain_scm",
+            "eval_04_mri_glioma"
+          ],
+          "contamination@k": 0.8,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "1485cb3f-53fa-4d5e-96bb-a2977c56c29b"
+          ],
+          "recall": 1.0,
+          "precision": 0.2,
+          "mrr": 0.2,
+          "map": 0.2
+        },
+        "channel_bm25": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "1485cb3f-53fa-4d5e-96bb-a2977c56c29b"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "48f69640-f94c-4716-a2f0-626b6fd3a667",
+            "953c697e-d1d1-4699-93e0-57a538b2065e",
+            "5cfb98cc-08fa-41fd-b626-956e451cf7a1",
+            "e76bb4a5-9ee5-47ea-92de-645d8286213e"
+          ],
+          "retrieved_paper_ids": [
+            "eval_03_blockchain_scm",
+            "eval_04_mri_glioma",
+            "eval_06_nlp_sentiment",
+            "eval_08_urban_traffic",
+            "eval_03_blockchain_scm"
+          ],
+          "contamination@k": 0.8,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "1485cb3f-53fa-4d5e-96bb-a2977c56c29b"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "48f69640-f94c-4716-a2f0-626b6fd3a667",
+            "953c697e-d1d1-4699-93e0-57a538b2065e",
+            "5cfb98cc-08fa-41fd-b626-956e451cf7a1",
+            "e76bb4a5-9ee5-47ea-92de-645d8286213e"
+          ],
+          "retrieved_paper_ids": [
+            "eval_03_blockchain_scm",
+            "eval_04_mri_glioma",
+            "eval_06_nlp_sentiment",
+            "eval_08_urban_traffic",
+            "eval_03_blockchain_scm"
+          ],
+          "contamination@k": 0.8,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "1485cb3f-53fa-4d5e-96bb-a2977c56c29b"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "1485cb3f-53fa-4d5e-96bb-a2977c56c29b"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        }
+      },
+      "scope_passed": true,
+      "scope_missing_tokens": []
+    },
+    {
+      "id": "eval_05_power",
+      "paper_id": "eval_05_wind_turbine",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "0fc2e3fc-8030-44ba-bc4b-21aadc17e510",
+            "289ee834-088c-4ba0-96be-29004905ace9",
+            "34423c4b-66dc-46ac-a17a-fca4935a2a69",
+            "6dac6b12-633b-4f04-96a5-139eb4b1f333",
+            "58531936-ca3a-4b53-b0c2-4b0dff6c8b30"
+          ],
+          "retrieved_paper_ids": [
+            "eval_05_wind_turbine",
+            "eval_05_wind_turbine",
+            "eval_05_wind_turbine",
+            "eval_03_blockchain_scm",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.4,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "0fc2e3fc-8030-44ba-bc4b-21aadc17e510",
+            "289ee834-088c-4ba0-96be-29004905ace9"
+          ],
+          "recall": 1.0,
+          "precision": 0.4,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "0fc2e3fc-8030-44ba-bc4b-21aadc17e510",
+            "289ee834-088c-4ba0-96be-29004905ace9",
+            "34423c4b-66dc-46ac-a17a-fca4935a2a69",
+            "6dac6b12-633b-4f04-96a5-139eb4b1f333",
+            "58531936-ca3a-4b53-b0c2-4b0dff6c8b30"
+          ],
+          "retrieved_paper_ids": [
+            "eval_05_wind_turbine",
+            "eval_05_wind_turbine",
+            "eval_05_wind_turbine",
+            "eval_03_blockchain_scm",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.4,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "0fc2e3fc-8030-44ba-bc4b-21aadc17e510",
+            "289ee834-088c-4ba0-96be-29004905ace9"
+          ],
+          "recall": 1.0,
+          "precision": 0.4,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_bm25": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "0fc2e3fc-8030-44ba-bc4b-21aadc17e510",
+            "289ee834-088c-4ba0-96be-29004905ace9"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "34423c4b-66dc-46ac-a17a-fca4935a2a69",
+            "289ee834-088c-4ba0-96be-29004905ace9",
+            "58531936-ca3a-4b53-b0c2-4b0dff6c8b30",
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de",
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf"
+          ],
+          "retrieved_paper_ids": [
+            "eval_05_wind_turbine",
+            "eval_05_wind_turbine",
+            "eval_02_ocean_ph",
+            "eval_10_quantum_error",
+            "eval_03_blockchain_scm"
+          ],
+          "contamination@k": 0.6,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "0fc2e3fc-8030-44ba-bc4b-21aadc17e510",
+            "289ee834-088c-4ba0-96be-29004905ace9"
+          ],
+          "recall": 0.5,
+          "precision": 0.2,
+          "mrr": 0.5,
+          "map": 0.25
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "34423c4b-66dc-46ac-a17a-fca4935a2a69",
+            "289ee834-088c-4ba0-96be-29004905ace9",
+            "58531936-ca3a-4b53-b0c2-4b0dff6c8b30",
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de",
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf"
+          ],
+          "retrieved_paper_ids": [
+            "eval_05_wind_turbine",
+            "eval_05_wind_turbine",
+            "eval_02_ocean_ph",
+            "eval_10_quantum_error",
+            "eval_03_blockchain_scm"
+          ],
+          "contamination@k": 0.6,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "0fc2e3fc-8030-44ba-bc4b-21aadc17e510",
+            "289ee834-088c-4ba0-96be-29004905ace9"
+          ],
+          "recall": 0.5,
+          "precision": 0.2,
+          "mrr": 0.5,
+          "map": 0.25
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "0fc2e3fc-8030-44ba-bc4b-21aadc17e510",
+            "289ee834-088c-4ba0-96be-29004905ace9"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        }
+      },
+      "scope_passed": true,
+      "scope_missing_tokens": []
+    },
+    {
+      "id": "eval_05_hours",
+      "paper_id": "eval_05_wind_turbine",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "c3fdf399-889f-46e4-9c38-3d6aba057803",
+            "70485d68-acd4-47bd-ba47-0ac600711359",
+            "ec7741e4-9a2b-41d0-ab8d-090a651ce156",
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd"
+          ],
+          "retrieved_paper_ids": [
+            "eval_03_blockchain_scm",
+            "eval_01_solar_pv",
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph",
+            "eval_05_wind_turbine"
+          ],
+          "contamination@k": 0.8,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd"
+          ],
+          "recall": 1.0,
+          "precision": 0.2,
+          "mrr": 0.2,
+          "map": 0.2
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "c3fdf399-889f-46e4-9c38-3d6aba057803",
+            "70485d68-acd4-47bd-ba47-0ac600711359",
+            "ec7741e4-9a2b-41d0-ab8d-090a651ce156",
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd"
+          ],
+          "retrieved_paper_ids": [
+            "eval_03_blockchain_scm",
+            "eval_01_solar_pv",
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph",
+            "eval_05_wind_turbine"
+          ],
+          "contamination@k": 0.8,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd"
+          ],
+          "recall": 1.0,
+          "precision": 0.2,
+          "mrr": 0.2,
+          "map": 0.2
+        },
+        "channel_bm25": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "c3fdf399-889f-46e4-9c38-3d6aba057803",
+            "c86ade26-5458-4a37-8665-ac96360026d9",
+            "d7f945f6-7804-4866-8939-586dbb127bda",
+            "8a284fe0-3a74-4efd-9e6c-973edc82ad75",
+            "13876c85-511c-496b-9383-f2af3a5ec358"
+          ],
+          "retrieved_paper_ids": [
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph",
+            "eval_05_wind_turbine",
+            "eval_09_protein_folding",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.8,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "c3fdf399-889f-46e4-9c38-3d6aba057803",
+            "c86ade26-5458-4a37-8665-ac96360026d9",
+            "d7f945f6-7804-4866-8939-586dbb127bda",
+            "8a284fe0-3a74-4efd-9e6c-973edc82ad75",
+            "13876c85-511c-496b-9383-f2af3a5ec358"
+          ],
+          "retrieved_paper_ids": [
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph",
+            "eval_05_wind_turbine",
+            "eval_09_protein_folding",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.8,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        }
+      },
+      "scope_passed": true,
+      "scope_missing_tokens": []
+    },
+    {
+      "id": "eval_06_f1",
+      "paper_id": "eval_06_nlp_sentiment",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "c350cdcf-21ca-4afb-8547-db5da93c4d55",
+            "3d87f756-e770-4bc0-acee-1984bc92be2d",
+            "983da29f-4d49-448b-92ae-335d51a08934",
+            "99524ffc-8749-4b2f-8e1e-77065e8035b4",
+            "40f7f4a2-8a23-418f-bca1-087fd9af226b"
+          ],
+          "retrieved_paper_ids": [
+            "eval_06_nlp_sentiment",
+            "eval_06_nlp_sentiment",
+            "eval_06_nlp_sentiment",
+            "eval_06_nlp_sentiment",
+            "eval_06_nlp_sentiment"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "c350cdcf-21ca-4afb-8547-db5da93c4d55",
+            "3d87f756-e770-4bc0-acee-1984bc92be2d",
+            "983da29f-4d49-448b-92ae-335d51a08934"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "c350cdcf-21ca-4afb-8547-db5da93c4d55",
+            "40f7f4a2-8a23-418f-bca1-087fd9af226b",
+            "6daef8e4-b92a-469e-8b96-da7877424c75",
+            "55237976-8f08-42b3-b789-285626d072e3",
+            "a9cba948-5cdb-4e6b-b216-1d4ebd86a3e7"
+          ],
+          "retrieved_paper_ids": [
+            "eval_06_nlp_sentiment",
+            "eval_06_nlp_sentiment",
+            "eval_06_nlp_sentiment",
+            "eval_06_nlp_sentiment",
+            "eval_04_mri_glioma"
+          ],
+          "contamination@k": 0.2,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "c350cdcf-21ca-4afb-8547-db5da93c4d55",
+            "3d87f756-e770-4bc0-acee-1984bc92be2d",
+            "983da29f-4d49-448b-92ae-335d51a08934"
+          ],
+          "recall": 0.3333,
+          "precision": 0.2,
+          "mrr": 1.0,
+          "map": 0.3333
+        },
+        "channel_bm25": {
+          "retrieved_ids": [
+            "c350cdcf-21ca-4afb-8547-db5da93c4d55",
+            "3d87f756-e770-4bc0-acee-1984bc92be2d",
+            "983da29f-4d49-448b-92ae-335d51a08934",
+            "99524ffc-8749-4b2f-8e1e-77065e8035b4",
+            "40f7f4a2-8a23-418f-bca1-087fd9af226b"
+          ],
+          "retrieved_paper_ids": [
+            "eval_06_nlp_sentiment",
+            "eval_06_nlp_sentiment",
+            "eval_06_nlp_sentiment",
+            "eval_06_nlp_sentiment",
+            "eval_06_nlp_sentiment"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "c350cdcf-21ca-4afb-8547-db5da93c4d55",
+            "3d87f756-e770-4bc0-acee-1984bc92be2d",
+            "983da29f-4d49-448b-92ae-335d51a08934"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "40f7f4a2-8a23-418f-bca1-087fd9af226b",
+            "99524ffc-8749-4b2f-8e1e-77065e8035b4",
+            "556b391a-3ce0-40ad-9cb8-494efb5ffffe",
+            "4d46f10d-62eb-4cfa-a031-47b68f38016f",
+            "55237976-8f08-42b3-b789-285626d072e3"
+          ],
+          "retrieved_paper_ids": [
+            "eval_06_nlp_sentiment",
+            "eval_06_nlp_sentiment",
+            "eval_08_urban_traffic",
+            "eval_05_wind_turbine",
+            "eval_06_nlp_sentiment"
+          ],
+          "contamination@k": 0.4,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "c350cdcf-21ca-4afb-8547-db5da93c4d55",
+            "3d87f756-e770-4bc0-acee-1984bc92be2d",
+            "983da29f-4d49-448b-92ae-335d51a08934"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "556b391a-3ce0-40ad-9cb8-494efb5ffffe",
+            "4d46f10d-62eb-4cfa-a031-47b68f38016f",
+            "55237976-8f08-42b3-b789-285626d072e3",
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de",
+            "40f7f4a2-8a23-418f-bca1-087fd9af226b"
+          ],
+          "retrieved_paper_ids": [
+            "eval_08_urban_traffic",
+            "eval_05_wind_turbine",
+            "eval_06_nlp_sentiment",
+            "eval_10_quantum_error",
+            "eval_06_nlp_sentiment"
+          ],
+          "contamination@k": 0.6,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "c350cdcf-21ca-4afb-8547-db5da93c4d55",
+            "3d87f756-e770-4bc0-acee-1984bc92be2d",
+            "983da29f-4d49-448b-92ae-335d51a08934"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [
+            "99524ffc-8749-4b2f-8e1e-77065e8035b4",
+            "40f7f4a2-8a23-418f-bca1-087fd9af226b",
+            "983da29f-4d49-448b-92ae-335d51a08934",
+            "3d87f756-e770-4bc0-acee-1984bc92be2d",
+            "c350cdcf-21ca-4afb-8547-db5da93c4d55"
+          ],
+          "retrieved_paper_ids": [
+            "eval_06_nlp_sentiment",
+            "eval_06_nlp_sentiment",
+            "eval_06_nlp_sentiment",
+            "eval_06_nlp_sentiment",
+            "eval_06_nlp_sentiment"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "c350cdcf-21ca-4afb-8547-db5da93c4d55",
+            "3d87f756-e770-4bc0-acee-1984bc92be2d",
+            "983da29f-4d49-448b-92ae-335d51a08934"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 0.3333,
+          "map": 0.4778
+        }
+      },
+      "scope_passed": true,
+      "scope_missing_tokens": []
+    },
+    {
+      "id": "eval_06_corpus",
+      "paper_id": "eval_06_nlp_sentiment",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "d7f945f6-7804-4866-8939-586dbb127bda",
+            "8a284fe0-3a74-4efd-9e6c-973edc82ad75",
+            "aef29254-71cc-43be-b009-95bc0ecf4034",
+            "7b7a4619-4b58-4797-8ee6-3c47558e33b6",
+            "70485d68-acd4-47bd-ba47-0ac600711359"
+          ],
+          "retrieved_paper_ids": [
+            "eval_05_wind_turbine",
+            "eval_09_protein_folding",
+            "eval_07_battery_solid",
+            "eval_08_urban_traffic",
+            "eval_01_solar_pv"
+          ],
+          "contamination@k": 1.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "bdc21da2-87b4-4ed5-8a4e-0931e65e539c"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "d7f945f6-7804-4866-8939-586dbb127bda",
+            "8a284fe0-3a74-4efd-9e6c-973edc82ad75",
+            "aef29254-71cc-43be-b009-95bc0ecf4034",
+            "7b7a4619-4b58-4797-8ee6-3c47558e33b6",
+            "70485d68-acd4-47bd-ba47-0ac600711359"
+          ],
+          "retrieved_paper_ids": [
+            "eval_05_wind_turbine",
+            "eval_09_protein_folding",
+            "eval_07_battery_solid",
+            "eval_08_urban_traffic",
+            "eval_01_solar_pv"
+          ],
+          "contamination@k": 1.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "bdc21da2-87b4-4ed5-8a4e-0931e65e539c"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_bm25": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "bdc21da2-87b4-4ed5-8a4e-0931e65e539c"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "70485d68-acd4-47bd-ba47-0ac600711359",
+            "ec7741e4-9a2b-41d0-ab8d-090a651ce156",
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd",
+            "e3462390-b0f2-43b5-9acf-eea1e06b4442",
+            "7b8904a1-2577-42fd-b8cc-71daecf63a81"
+          ],
+          "retrieved_paper_ids": [
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph",
+            "eval_05_wind_turbine",
+            "eval_09_protein_folding",
+            "eval_10_quantum_error"
+          ],
+          "contamination@k": 1.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "bdc21da2-87b4-4ed5-8a4e-0931e65e539c"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "70485d68-acd4-47bd-ba47-0ac600711359",
+            "ec7741e4-9a2b-41d0-ab8d-090a651ce156",
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd",
+            "e3462390-b0f2-43b5-9acf-eea1e06b4442",
+            "7b8904a1-2577-42fd-b8cc-71daecf63a81"
+          ],
+          "retrieved_paper_ids": [
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph",
+            "eval_05_wind_turbine",
+            "eval_09_protein_folding",
+            "eval_10_quantum_error"
+          ],
+          "contamination@k": 1.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "bdc21da2-87b4-4ed5-8a4e-0931e65e539c"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "bdc21da2-87b4-4ed5-8a4e-0931e65e539c"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        }
+      },
+      "scope_passed": true,
+      "scope_missing_tokens": []
+    },
+    {
+      "id": "eval_07_density",
+      "paper_id": "eval_07_battery_solid",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "52b5f8bd-ea0d-4e5c-962d-5fff9087a2dd",
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d",
+            "f223ee29-62fb-4d43-88f1-b458c45086bf",
+            "581c4eb0-321e-4eed-9404-33e65496d4bb"
+          ],
+          "retrieved_paper_ids": [
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "52b5f8bd-ea0d-4e5c-962d-5fff9087a2dd",
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "52b5f8bd-ea0d-4e5c-962d-5fff9087a2dd",
+            "f223ee29-62fb-4d43-88f1-b458c45086bf",
+            "581c4eb0-321e-4eed-9404-33e65496d4bb",
+            "c510f094-8235-4de0-8420-8c1dc6b38776"
+          ],
+          "retrieved_paper_ids": [
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "52b5f8bd-ea0d-4e5c-962d-5fff9087a2dd",
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d"
+          ],
+          "recall": 0.6667,
+          "precision": 0.4,
+          "mrr": 1.0,
+          "map": 0.6667
+        },
+        "channel_bm25": {
+          "retrieved_ids": [
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "52b5f8bd-ea0d-4e5c-962d-5fff9087a2dd",
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d",
+            "f223ee29-62fb-4d43-88f1-b458c45086bf",
+            "581c4eb0-321e-4eed-9404-33e65496d4bb"
+          ],
+          "retrieved_paper_ids": [
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "52b5f8bd-ea0d-4e5c-962d-5fff9087a2dd",
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "581c4eb0-321e-4eed-9404-33e65496d4bb",
+            "52b5f8bd-ea0d-4e5c-962d-5fff9087a2dd",
+            "f223ee29-62fb-4d43-88f1-b458c45086bf",
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "0fc2e3fc-8030-44ba-bc4b-21aadc17e510"
+          ],
+          "retrieved_paper_ids": [
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_05_wind_turbine"
+          ],
+          "contamination@k": 0.2,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "52b5f8bd-ea0d-4e5c-962d-5fff9087a2dd",
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d"
+          ],
+          "recall": 0.6667,
+          "precision": 0.4,
+          "mrr": 0.5,
+          "map": 0.3333
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "581c4eb0-321e-4eed-9404-33e65496d4bb",
+            "0fc2e3fc-8030-44ba-bc4b-21aadc17e510",
+            "52b5f8bd-ea0d-4e5c-962d-5fff9087a2dd",
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "f223ee29-62fb-4d43-88f1-b458c45086bf"
+          ],
+          "retrieved_paper_ids": [
+            "eval_07_battery_solid",
+            "eval_05_wind_turbine",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid"
+          ],
+          "contamination@k": 0.2,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "52b5f8bd-ea0d-4e5c-962d-5fff9087a2dd",
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d"
+          ],
+          "recall": 0.6667,
+          "precision": 0.4,
+          "mrr": 0.3333,
+          "map": 0.2778
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [
+            "f223ee29-62fb-4d43-88f1-b458c45086bf",
+            "52b5f8bd-ea0d-4e5c-962d-5fff9087a2dd",
+            "581c4eb0-321e-4eed-9404-33e65496d4bb",
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d"
+          ],
+          "retrieved_paper_ids": [
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "52b5f8bd-ea0d-4e5c-962d-5fff9087a2dd",
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 0.5,
+          "map": 0.5333
+        }
+      },
+      "scope_passed": true,
+      "scope_missing_tokens": []
+    },
+    {
+      "id": "eval_07_cycles",
+      "paper_id": "eval_07_battery_solid",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d",
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "f223ee29-62fb-4d43-88f1-b458c45086bf",
+            "52b5f8bd-ea0d-4e5c-962d-5fff9087a2dd",
+            "581c4eb0-321e-4eed-9404-33e65496d4bb"
+          ],
+          "retrieved_paper_ids": [
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d",
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "f223ee29-62fb-4d43-88f1-b458c45086bf"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "f223ee29-62fb-4d43-88f1-b458c45086bf",
+            "52b5f8bd-ea0d-4e5c-962d-5fff9087a2dd",
+            "581c4eb0-321e-4eed-9404-33e65496d4bb",
+            "6dac6b12-633b-4f04-96a5-139eb4b1f333"
+          ],
+          "retrieved_paper_ids": [
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_03_blockchain_scm"
+          ],
+          "contamination@k": 0.2,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d",
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "f223ee29-62fb-4d43-88f1-b458c45086bf"
+          ],
+          "recall": 0.6667,
+          "precision": 0.4,
+          "mrr": 1.0,
+          "map": 0.6667
+        },
+        "channel_bm25": {
+          "retrieved_ids": [
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d",
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "f223ee29-62fb-4d43-88f1-b458c45086bf"
+          ],
+          "retrieved_paper_ids": [
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 3,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d",
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "f223ee29-62fb-4d43-88f1-b458c45086bf"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "f223ee29-62fb-4d43-88f1-b458c45086bf",
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d",
+            "581c4eb0-321e-4eed-9404-33e65496d4bb",
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf"
+          ],
+          "retrieved_paper_ids": [
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_03_blockchain_scm"
+          ],
+          "contamination@k": 0.2,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d",
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "f223ee29-62fb-4d43-88f1-b458c45086bf"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "581c4eb0-321e-4eed-9404-33e65496d4bb",
+            "f223ee29-62fb-4d43-88f1-b458c45086bf",
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "52b5f8bd-ea0d-4e5c-962d-5fff9087a2dd",
+            "855c72df-b832-4748-a60a-a266bc9cb972"
+          ],
+          "retrieved_paper_ids": [
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_03_blockchain_scm",
+            "eval_07_battery_solid",
+            "eval_10_quantum_error"
+          ],
+          "contamination@k": 0.4,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d",
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "f223ee29-62fb-4d43-88f1-b458c45086bf"
+          ],
+          "recall": 0.3333,
+          "precision": 0.2,
+          "mrr": 0.5,
+          "map": 0.1667
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d",
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "f223ee29-62fb-4d43-88f1-b458c45086bf"
+          ],
+          "retrieved_paper_ids": [
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 3,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "2f565a26-aa31-49ba-b085-82c9bfe0ac2d",
+            "6c84b9f1-e9ba-4f7c-b52d-80c06f973628",
+            "f223ee29-62fb-4d43-88f1-b458c45086bf"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        }
+      },
+      "scope_passed": true,
+      "scope_missing_tokens": []
+    },
+    {
+      "id": "eval_08_delay",
+      "paper_id": "eval_08_urban_traffic",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "f339488c-8425-40a4-ab0c-82a4dc70235b",
+            "89ddf99c-772f-4203-8f94-923c274f4cd5",
+            "556b391a-3ce0-40ad-9cb8-494efb5ffffe",
+            "70485d68-acd4-47bd-ba47-0ac600711359",
+            "ec7741e4-9a2b-41d0-ab8d-090a651ce156"
+          ],
+          "retrieved_paper_ids": [
+            "eval_08_urban_traffic",
+            "eval_08_urban_traffic",
+            "eval_08_urban_traffic",
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.4,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "f339488c-8425-40a4-ab0c-82a4dc70235b"
+          ],
+          "recall": 1.0,
+          "precision": 0.2,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "f339488c-8425-40a4-ab0c-82a4dc70235b",
+            "89ddf99c-772f-4203-8f94-923c274f4cd5",
+            "556b391a-3ce0-40ad-9cb8-494efb5ffffe",
+            "70485d68-acd4-47bd-ba47-0ac600711359",
+            "ec7741e4-9a2b-41d0-ab8d-090a651ce156"
+          ],
+          "retrieved_paper_ids": [
+            "eval_08_urban_traffic",
+            "eval_08_urban_traffic",
+            "eval_08_urban_traffic",
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.4,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "f339488c-8425-40a4-ab0c-82a4dc70235b"
+          ],
+          "recall": 1.0,
+          "precision": 0.2,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_bm25": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "f339488c-8425-40a4-ab0c-82a4dc70235b"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "89ddf99c-772f-4203-8f94-923c274f4cd5",
+            "556b391a-3ce0-40ad-9cb8-494efb5ffffe",
+            "c510f094-8235-4de0-8420-8c1dc6b38776",
+            "d7f945f6-7804-4866-8939-586dbb127bda",
+            "8a284fe0-3a74-4efd-9e6c-973edc82ad75"
+          ],
+          "retrieved_paper_ids": [
+            "eval_08_urban_traffic",
+            "eval_08_urban_traffic",
+            "eval_07_battery_solid",
+            "eval_05_wind_turbine",
+            "eval_09_protein_folding"
+          ],
+          "contamination@k": 0.6,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "f339488c-8425-40a4-ab0c-82a4dc70235b"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "89ddf99c-772f-4203-8f94-923c274f4cd5",
+            "556b391a-3ce0-40ad-9cb8-494efb5ffffe",
+            "c510f094-8235-4de0-8420-8c1dc6b38776",
+            "d7f945f6-7804-4866-8939-586dbb127bda",
+            "8a284fe0-3a74-4efd-9e6c-973edc82ad75"
+          ],
+          "retrieved_paper_ids": [
+            "eval_08_urban_traffic",
+            "eval_08_urban_traffic",
+            "eval_07_battery_solid",
+            "eval_05_wind_turbine",
+            "eval_09_protein_folding"
+          ],
+          "contamination@k": 0.6,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "f339488c-8425-40a4-ab0c-82a4dc70235b"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "f339488c-8425-40a4-ab0c-82a4dc70235b"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        }
+      },
+      "scope_passed": true,
+      "scope_missing_tokens": []
+    },
+    {
+      "id": "eval_08_simulator",
+      "paper_id": "eval_08_urban_traffic",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "70485d68-acd4-47bd-ba47-0ac600711359",
+            "ec7741e4-9a2b-41d0-ab8d-090a651ce156",
+            "10bcea54-3ee3-489b-917d-2cd05f3838e8",
+            "1485cb3f-53fa-4d5e-96bb-a2977c56c29b",
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd"
+          ],
+          "retrieved_paper_ids": [
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph",
+            "eval_03_blockchain_scm",
+            "eval_04_mri_glioma",
+            "eval_05_wind_turbine"
+          ],
+          "contamination@k": 1.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "7b7a4619-4b58-4797-8ee6-3c47558e33b6"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "70485d68-acd4-47bd-ba47-0ac600711359",
+            "ec7741e4-9a2b-41d0-ab8d-090a651ce156",
+            "10bcea54-3ee3-489b-917d-2cd05f3838e8",
+            "1485cb3f-53fa-4d5e-96bb-a2977c56c29b",
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd"
+          ],
+          "retrieved_paper_ids": [
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph",
+            "eval_03_blockchain_scm",
+            "eval_04_mri_glioma",
+            "eval_05_wind_turbine"
+          ],
+          "contamination@k": 1.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "7b7a4619-4b58-4797-8ee6-3c47558e33b6"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_bm25": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "7b7a4619-4b58-4797-8ee6-3c47558e33b6"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "68bfde6e-1c31-4b62-9f35-06d90b065d4e",
+            "664b004a-35bb-42ba-8fb5-459254691653",
+            "ae12b919-f631-4788-9142-fd71e3a6d02d",
+            "3182fa1b-b5e0-485a-a599-31285ed62bde",
+            "642a6e98-95f1-4b20-9b59-842effa8b428"
+          ],
+          "retrieved_paper_ids": [
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph",
+            "eval_03_blockchain_scm",
+            "eval_04_mri_glioma",
+            "eval_05_wind_turbine"
+          ],
+          "contamination@k": 1.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "7b7a4619-4b58-4797-8ee6-3c47558e33b6"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "68bfde6e-1c31-4b62-9f35-06d90b065d4e",
+            "664b004a-35bb-42ba-8fb5-459254691653",
+            "ae12b919-f631-4788-9142-fd71e3a6d02d",
+            "3182fa1b-b5e0-485a-a599-31285ed62bde",
+            "642a6e98-95f1-4b20-9b59-842effa8b428"
+          ],
+          "retrieved_paper_ids": [
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph",
+            "eval_03_blockchain_scm",
+            "eval_04_mri_glioma",
+            "eval_05_wind_turbine"
+          ],
+          "contamination@k": 1.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "7b7a4619-4b58-4797-8ee6-3c47558e33b6"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "7b7a4619-4b58-4797-8ee6-3c47558e33b6"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        }
+      },
+      "scope_passed": false,
+      "scope_missing_tokens": [
+        "SUMO"
+      ]
+    },
+    {
+      "id": "eval_09_rmsd",
+      "paper_id": "eval_09_protein_folding",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "616dba51-2abf-4d62-b699-4a32ad3644e5",
+            "7617018f-a7b3-426f-8dfa-da405b631d78",
+            "259ffff9-455f-4586-9147-0ccfd525a972",
+            "122b2a65-e140-4ba2-892b-71e13f1eb373",
+            "00fd4c20-6415-4b39-ae33-5dc5f9081afe"
+          ],
+          "retrieved_paper_ids": [
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_09_protein_folding"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "616dba51-2abf-4d62-b699-4a32ad3644e5",
+            "7617018f-a7b3-426f-8dfa-da405b631d78",
+            "259ffff9-455f-4586-9147-0ccfd525a972"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "616dba51-2abf-4d62-b699-4a32ad3644e5",
+            "7617018f-a7b3-426f-8dfa-da405b631d78",
+            "259ffff9-455f-4586-9147-0ccfd525a972",
+            "122b2a65-e140-4ba2-892b-71e13f1eb373",
+            "00fd4c20-6415-4b39-ae33-5dc5f9081afe"
+          ],
+          "retrieved_paper_ids": [
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_09_protein_folding"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "616dba51-2abf-4d62-b699-4a32ad3644e5",
+            "7617018f-a7b3-426f-8dfa-da405b631d78",
+            "259ffff9-455f-4586-9147-0ccfd525a972"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_bm25": {
+          "retrieved_ids": [
+            "616dba51-2abf-4d62-b699-4a32ad3644e5",
+            "7617018f-a7b3-426f-8dfa-da405b631d78",
+            "259ffff9-455f-4586-9147-0ccfd525a972",
+            "122b2a65-e140-4ba2-892b-71e13f1eb373",
+            "691853d3-6999-4813-a5df-2b7a010bd5b1"
+          ],
+          "retrieved_paper_ids": [
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_09_protein_folding"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "616dba51-2abf-4d62-b699-4a32ad3644e5",
+            "7617018f-a7b3-426f-8dfa-da405b631d78",
+            "259ffff9-455f-4586-9147-0ccfd525a972"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "259ffff9-455f-4586-9147-0ccfd525a972",
+            "691853d3-6999-4813-a5df-2b7a010bd5b1",
+            "7617018f-a7b3-426f-8dfa-da405b631d78",
+            "122b2a65-e140-4ba2-892b-71e13f1eb373",
+            "616dba51-2abf-4d62-b699-4a32ad3644e5"
+          ],
+          "retrieved_paper_ids": [
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_09_protein_folding"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "616dba51-2abf-4d62-b699-4a32ad3644e5",
+            "7617018f-a7b3-426f-8dfa-da405b631d78",
+            "259ffff9-455f-4586-9147-0ccfd525a972"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 0.7556
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "7617018f-a7b3-426f-8dfa-da405b631d78",
+            "691853d3-6999-4813-a5df-2b7a010bd5b1",
+            "259ffff9-455f-4586-9147-0ccfd525a972",
+            "58531936-ca3a-4b53-b0c2-4b0dff6c8b30",
+            "122b2a65-e140-4ba2-892b-71e13f1eb373"
+          ],
+          "retrieved_paper_ids": [
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_02_ocean_ph",
+            "eval_09_protein_folding"
+          ],
+          "contamination@k": 0.2,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "616dba51-2abf-4d62-b699-4a32ad3644e5",
+            "7617018f-a7b3-426f-8dfa-da405b631d78",
+            "259ffff9-455f-4586-9147-0ccfd525a972"
+          ],
+          "recall": 0.6667,
+          "precision": 0.4,
+          "mrr": 1.0,
+          "map": 0.5556
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [
+            "259ffff9-455f-4586-9147-0ccfd525a972",
+            "691853d3-6999-4813-a5df-2b7a010bd5b1",
+            "122b2a65-e140-4ba2-892b-71e13f1eb373",
+            "7617018f-a7b3-426f-8dfa-da405b631d78",
+            "616dba51-2abf-4d62-b699-4a32ad3644e5"
+          ],
+          "retrieved_paper_ids": [
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_09_protein_folding",
+            "eval_09_protein_folding"
+          ],
+          "contamination@k": 0.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "616dba51-2abf-4d62-b699-4a32ad3644e5",
+            "7617018f-a7b3-426f-8dfa-da405b631d78",
+            "259ffff9-455f-4586-9147-0ccfd525a972"
+          ],
+          "recall": 1.0,
+          "precision": 0.6,
+          "mrr": 1.0,
+          "map": 0.7
+        }
+      },
+      "scope_passed": true,
+      "scope_missing_tokens": []
+    },
+    {
+      "id": "eval_09_benchmark",
+      "paper_id": "eval_09_protein_folding",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "7617018f-a7b3-426f-8dfa-da405b631d78",
+            "a32da7bb-eaa7-4ab9-bc51-fb0244a7e8ad",
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de",
+            "00fd4c20-6415-4b39-ae33-5dc5f9081afe",
+            "70485d68-acd4-47bd-ba47-0ac600711359"
+          ],
+          "retrieved_paper_ids": [
+            "eval_09_protein_folding",
+            "eval_04_mri_glioma",
+            "eval_10_quantum_error",
+            "eval_09_protein_folding",
+            "eval_01_solar_pv"
+          ],
+          "contamination@k": 0.6,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "7617018f-a7b3-426f-8dfa-da405b631d78"
+          ],
+          "recall": 1.0,
+          "precision": 0.2,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "7617018f-a7b3-426f-8dfa-da405b631d78",
+            "a32da7bb-eaa7-4ab9-bc51-fb0244a7e8ad",
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de",
+            "00fd4c20-6415-4b39-ae33-5dc5f9081afe",
+            "70485d68-acd4-47bd-ba47-0ac600711359"
+          ],
+          "retrieved_paper_ids": [
+            "eval_09_protein_folding",
+            "eval_04_mri_glioma",
+            "eval_10_quantum_error",
+            "eval_09_protein_folding",
+            "eval_01_solar_pv"
+          ],
+          "contamination@k": 0.6,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "7617018f-a7b3-426f-8dfa-da405b631d78"
+          ],
+          "recall": 1.0,
+          "precision": 0.2,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_bm25": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "7617018f-a7b3-426f-8dfa-da405b631d78"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "00fd4c20-6415-4b39-ae33-5dc5f9081afe",
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de",
+            "70485d68-acd4-47bd-ba47-0ac600711359",
+            "ec7741e4-9a2b-41d0-ab8d-090a651ce156",
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd"
+          ],
+          "retrieved_paper_ids": [
+            "eval_09_protein_folding",
+            "eval_10_quantum_error",
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph",
+            "eval_05_wind_turbine"
+          ],
+          "contamination@k": 0.8,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "7617018f-a7b3-426f-8dfa-da405b631d78"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "00fd4c20-6415-4b39-ae33-5dc5f9081afe",
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de",
+            "70485d68-acd4-47bd-ba47-0ac600711359",
+            "ec7741e4-9a2b-41d0-ab8d-090a651ce156",
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd"
+          ],
+          "retrieved_paper_ids": [
+            "eval_09_protein_folding",
+            "eval_10_quantum_error",
+            "eval_01_solar_pv",
+            "eval_02_ocean_ph",
+            "eval_05_wind_turbine"
+          ],
+          "contamination@k": 0.8,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "7617018f-a7b3-426f-8dfa-da405b631d78"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "7617018f-a7b3-426f-8dfa-da405b631d78"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        }
+      },
+      "scope_passed": true,
+      "scope_missing_tokens": []
+    },
+    {
+      "id": "eval_10_threshold",
+      "paper_id": "eval_10_quantum_error",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "855c72df-b832-4748-a60a-a266bc9cb972",
+            "781eb2fe-f4c8-4b02-ada4-2388f78f5cda",
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de",
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "58531936-ca3a-4b53-b0c2-4b0dff6c8b30"
+          ],
+          "retrieved_paper_ids": [
+            "eval_10_quantum_error",
+            "eval_10_quantum_error",
+            "eval_10_quantum_error",
+            "eval_03_blockchain_scm",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.4,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "855c72df-b832-4748-a60a-a266bc9cb972"
+          ],
+          "recall": 1.0,
+          "precision": 0.2,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "855c72df-b832-4748-a60a-a266bc9cb972",
+            "781eb2fe-f4c8-4b02-ada4-2388f78f5cda",
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de",
+            "8f6144a9-8e2f-4a08-8b0b-963e02e22bcf",
+            "58531936-ca3a-4b53-b0c2-4b0dff6c8b30"
+          ],
+          "retrieved_paper_ids": [
+            "eval_10_quantum_error",
+            "eval_10_quantum_error",
+            "eval_10_quantum_error",
+            "eval_03_blockchain_scm",
+            "eval_02_ocean_ph"
+          ],
+          "contamination@k": 0.4,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "855c72df-b832-4748-a60a-a266bc9cb972"
+          ],
+          "recall": 1.0,
+          "precision": 0.2,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_bm25": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "855c72df-b832-4748-a60a-a266bc9cb972"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de",
+            "c510f094-8235-4de0-8420-8c1dc6b38776",
+            "3ead1cb9-ed57-4d8b-89a2-4c3b737b070a",
+            "8e16823c-6e00-4134-8b57-4b4486cabd09",
+            "73510190-2822-4080-8113-a3b088c8a3c7"
+          ],
+          "retrieved_paper_ids": [
+            "eval_10_quantum_error",
+            "eval_07_battery_solid",
+            "eval_03_blockchain_scm",
+            "eval_04_mri_glioma",
+            "eval_06_nlp_sentiment"
+          ],
+          "contamination@k": 0.8,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "855c72df-b832-4748-a60a-a266bc9cb972"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de",
+            "c510f094-8235-4de0-8420-8c1dc6b38776",
+            "3ead1cb9-ed57-4d8b-89a2-4c3b737b070a",
+            "8e16823c-6e00-4134-8b57-4b4486cabd09",
+            "73510190-2822-4080-8113-a3b088c8a3c7"
+          ],
+          "retrieved_paper_ids": [
+            "eval_10_quantum_error",
+            "eval_07_battery_solid",
+            "eval_03_blockchain_scm",
+            "eval_04_mri_glioma",
+            "eval_06_nlp_sentiment"
+          ],
+          "contamination@k": 0.8,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "855c72df-b832-4748-a60a-a266bc9cb972"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "855c72df-b832-4748-a60a-a266bc9cb972"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        }
+      },
+      "scope_passed": false,
+      "scope_missing_tokens": [
+        "0.7"
+      ]
+    },
+    {
+      "id": "eval_10_code",
+      "paper_id": "eval_10_quantum_error",
+      "configs": {
+        "channel_hybrid": {
+          "retrieved_ids": [
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de",
+            "c510f094-8235-4de0-8420-8c1dc6b38776",
+            "cfdfc27f-37da-4347-976e-758ad8c90b8c",
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd",
+            "e3462390-b0f2-43b5-9acf-eea1e06b4442"
+          ],
+          "retrieved_paper_ids": [
+            "eval_10_quantum_error",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_05_wind_turbine",
+            "eval_09_protein_folding"
+          ],
+          "contamination@k": 0.8,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de"
+          ],
+          "recall": 1.0,
+          "precision": 0.2,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_dense": {
+          "retrieved_ids": [
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de",
+            "c510f094-8235-4de0-8420-8c1dc6b38776",
+            "cfdfc27f-37da-4347-976e-758ad8c90b8c",
+            "8aa0baca-e5b8-4a19-867b-78a9d5ab3cdd",
+            "e3462390-b0f2-43b5-9acf-eea1e06b4442"
+          ],
+          "retrieved_paper_ids": [
+            "eval_10_quantum_error",
+            "eval_07_battery_solid",
+            "eval_07_battery_solid",
+            "eval_05_wind_turbine",
+            "eval_09_protein_folding"
+          ],
+          "contamination@k": 0.8,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de"
+          ],
+          "recall": 1.0,
+          "precision": 0.2,
+          "mrr": 1.0,
+          "map": 1.0
+        },
+        "channel_bm25": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_hybrid_raw": {
+          "retrieved_ids": [
+            "48f69640-f94c-4716-a2f0-626b6fd3a667",
+            "953c697e-d1d1-4699-93e0-57a538b2065e",
+            "5cfb98cc-08fa-41fd-b626-956e451cf7a1",
+            "e76bb4a5-9ee5-47ea-92de-645d8286213e",
+            "b515aa38-c481-4ac1-9d26-10becfe222e0"
+          ],
+          "retrieved_paper_ids": [
+            "eval_04_mri_glioma",
+            "eval_06_nlp_sentiment",
+            "eval_08_urban_traffic",
+            "eval_03_blockchain_scm",
+            "eval_07_battery_solid"
+          ],
+          "contamination@k": 1.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_dense_raw": {
+          "retrieved_ids": [
+            "48f69640-f94c-4716-a2f0-626b6fd3a667",
+            "953c697e-d1d1-4699-93e0-57a538b2065e",
+            "5cfb98cc-08fa-41fd-b626-956e451cf7a1",
+            "e76bb4a5-9ee5-47ea-92de-645d8286213e",
+            "b515aa38-c481-4ac1-9d26-10becfe222e0"
+          ],
+          "retrieved_paper_ids": [
+            "eval_04_mri_glioma",
+            "eval_06_nlp_sentiment",
+            "eval_08_urban_traffic",
+            "eval_03_blockchain_scm",
+            "eval_07_battery_solid"
+          ],
+          "contamination@k": 1.0,
+          "num_retrieved": 5,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        },
+        "channel_bm25_raw": {
+          "retrieved_ids": [],
+          "retrieved_paper_ids": [],
+          "contamination@k": 0.0,
+          "num_retrieved": 0,
+          "mode": "chunk_id",
+          "relevant_ids": [
+            "95eb42d1-f951-496b-a39c-0da0fde8d9de"
+          ],
+          "recall": 0.0,
+          "precision": 0.0,
+          "mrr": 0.0,
+          "map": 0.0
+        }
+      },
+      "scope_passed": false,
+      "scope_missing_tokens": [
+        "表面码"
+      ]
+    }
+  ]
+}
