@@ -1,8 +1,11 @@
-# React + Vite
+# ScholarRAG Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite chat UI for [ScholarRAG](../README.md).
 
-Currently, two official plugins are available:
+```bash
+npm install
+npm run dev      # http://localhost:5173 (proxies API to backend)
+npm run build    # output to dist/ (served by FastAPI in production)
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+SSE events from `/api/chat` are parsed in `src/api.js`; see root README for API details.

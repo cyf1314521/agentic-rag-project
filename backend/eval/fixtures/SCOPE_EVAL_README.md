@@ -19,7 +19,7 @@
 ## 跑评测
 
 ```powershell
-cd "d:\agent project two\agentic rag\agentic-rag-project\backend"
+cd backend
 
 .\.venv\Scripts\python.exe scripts\run_scope_eval.py --limit 3
 .\.venv\Scripts\python.exe scripts\run_scope_eval.py
