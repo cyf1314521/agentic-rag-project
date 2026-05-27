@@ -139,7 +139,7 @@ def run_eval(
         summary_configs[config_name] = {
             **aggregate_metrics(case_rows, settings.k),
             "retrieve_options": config,
-            "paper_filter_mode": "multi_paper" if multi_paper else "single",
+            "paper_filter_mode": "multi_paper" if multi_paper else "single_paper",
         }
 
     _merge_scope_alignment(per_case_out)

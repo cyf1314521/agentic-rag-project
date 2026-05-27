@@ -15,26 +15,48 @@ logger = logging.getLogger(__name__)
 def resolve_torch_device(setting: str | None = None) -> str:
     """将 EMBEDDING_DEVICE（auto/cuda/cpu）解析为 sentence-transformers 可用设备名。"""
     raw = (setting or Config.EMBEDDING_DEVICE or "auto").strip().lower()
-    if raw in ("cpu", "cuda", "mps"):
-        return raw
-    if raw.startswith("cuda:"):
-        return raw
+    if raw == "cpu":
+        return "cpu"
+
     try:
         import torch
+    except ImportError:
+        if raw not in ("auto", "cpu"):
+            logger.warning("EMBEDDING_DEVICE=%s but torch is not installed; using CPU.", raw)
+        return "cpu"
 
+    if raw.startswith("cuda:"):
+        if torch.cuda.is_available():
+            return raw
+        logger.warning("EMBEDDING_DEVICE=%s but CUDA is not available; using CPU.", raw)
+        return "cpu"
+
+    if raw == "cuda" or raw == "auto":
         if torch.cuda.is_available():
             name = torch.cuda.get_device_name(0)
             logger.info("Using GPU for embeddings/reranker: %s", name)
             return "cuda"
+        if raw == "cuda":
+            logger.warning("EMBEDDING_DEVICE=cuda but CUDA is not available; using CPU.")
+            return "cpu"
+
+    if raw == "mps" or raw == "auto":
         if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
             logger.info("Using Apple MPS for embeddings/reranker")
             return "mps"
-    except ImportError:
-        pass
-    logger.warning(
-        "EMBEDDING_DEVICE=auto but CUDA unavailable (install torch with CUDA, e.g. cu124). Using CPU."
-    )
+        if raw == "mps":
+            logger.warning("EMBEDDING_DEVICE=mps but MPS is not available; using CPU.")
+            return "cpu"
+
+    if raw not in ("auto", "cpu"):
+        logger.warning("Unknown EMBEDDING_DEVICE=%s; using CPU.", raw)
+    else:
+        logger.warning(
+            "EMBEDDING_DEVICE=auto but no GPU backend available (install CUDA torch or set EMBEDDING_DEVICE=cpu). Using CPU."
+        )
     return "cpu"
+
+
 from langchain_milvus import Milvus, BM25BuiltInFunction
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.messages import HumanMessage

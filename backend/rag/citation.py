@@ -5,8 +5,55 @@
 供前端展示及生成答案中的 [Source: ...] 标注。
 """
 
+import re
 from typing import Dict, List
+
 from langchain_core.documents import Document
+
+_CITATION_BRACKET_RE = re.compile(r"\[\d+(?:,\s*\d+)*\]")
+
+
+def parse_citation_indices(answer: str) -> list[int]:
+    """从答案解析 [1]、[1, 2]、[1][2] 等 1-based 引用编号。"""
+    indices: list[int] = []
+    seen: set[int] = set()
+    for m in re.finditer(r"\[([^\]]+)\]", answer or ""):
+        for part in re.split(r"[,，\s]+", m.group(1).strip()):
+            if part.isdigit():
+                n = int(part)
+                if n >= 1 and n not in seen:
+                    seen.add(n)
+                    indices.append(n)
+    return indices
+
+
+def is_citation_only_answer(text: str) -> bool:
+    """True when answer is empty or only bracket indices like [1] / [1], [2]."""
+    t = (text or "").strip()
+    if not t:
+        return True
+    without_cites = _CITATION_BRACKET_RE.sub("", t).strip()
+    without_cites = re.sub(r"^[,，\s\.。；;]+|[,，\s\.。；;]+$", "", without_cites)
+    if not without_cites:
+        return True
+    if re.search(r"[\d\u4e00-\u9fff]", without_cites):
+        return False
+    return len(without_cites) < 12
+
+
+def paper_ids_from_citations(answer: str, citations: list[dict]) -> list[str]:
+    """答案 [n] 对应 citations[n-1] 的 paper_id（去重排序）。"""
+    paper_ids: set[str] = set()
+    for n in parse_citation_indices(answer):
+        if 1 <= n <= len(citations):
+            pid = citations[n - 1].get("paper_id")
+            if pid:
+                paper_ids.add(str(pid))
+    return sorted(paper_ids)
+
+
+def scope_ok_for_paper(paper_ids_cited: list[str], expected: str) -> bool:
+    return len(paper_ids_cited) == 1 and paper_ids_cited[0] == expected
 
 
 class CitationExtractor:

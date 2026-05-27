@@ -109,8 +109,7 @@ class RetrieverTool:
     """
     供 LangGraph 子 Agent 调用的检索适配器。
 
-    封装 Retriever.retrieve 的默认参数（TOP_K、RRF、重排、父块扩展等），
-    与 agent/tools.py 中的 paper_retrieval 工具逻辑一致，但走依赖注入的单例 Retriever。
+    封装 Retriever.retrieve 的默认参数（TOP_K、RRF、重排、父块扩展等）。
     """
 
     def __init__(self, retriever: Retriever):

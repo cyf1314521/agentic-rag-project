@@ -21,6 +21,7 @@ from langchain_core.documents import Document
 from .states import AgentState, SubAgentState
 from .prompts import QUERY_ANALYZER, QUERY_CLASSIFIER, SYNTHESIZER, GENERATOR, REFLECTOR, SUMMARIZER
 from rag.chat_trace import get_trace
+from rag.citation import CitationExtractor, is_citation_only_answer
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,11 @@ _COMPLEX_HINTS = re.compile(
     re.I,
 )
 _ABSTRACT_HINTS = re.compile(r"摘要|abstract", re.I)
+_SINGLE_PAPER_QUERY_HINTS = re.compile(
+    r"这篇|该论文|该篇|此文|本文|this paper|the paper|摘要里|摘要中|摘要采用|摘要提到|摘要表示|"
+    r"abstract says|in the abstract",
+    re.I,
+)
 
 MAX_SUB_QUERIES_SIMPLE = 2
 MAX_SUB_QUERIES_COMPLEX = 4
@@ -137,11 +143,10 @@ def _collect_valid_evidence(sub_answers: list) -> list:
     valid = []
     for sa in sub_answers:
         ans = str(sa.get("answer", "")).strip()
-        if len(ans) < 30:
+        if len(ans) < 30 or is_citation_only_answer(ans):
             continue
         if ans.lower() == "no relevant information found.":
             continue
-        # 已带 [n] 引用且前半有实质内容时，不因尾部英文 insufficient 整段丢弃
         if _is_insufficient_answer(ans) and not (
             re.search(r"\[\d+\]", ans) and len(ans) >= 40
         ):
@@ -202,14 +207,99 @@ def _build_context_header(state: AgentState) -> str:
     return "\n\n".join(parts)
 
 
-def _remap_citations(answer: str, offset: int) -> str:
-    """将答案中的 [1][2] 引用编号整体加上 offset，避免多子答案合并后编号冲突。"""
-    def _replace(m):
-        return f"[{int(m.group(1)) + offset}]"
-    return re.sub(r"\[(\d+)\]", _replace, answer)
-
-
 # --------------- 主图节点 ---------------
+
+
+def _infer_focus_paper_id(
+    query: str,
+    valid: list,
+    session_paper_ids: list[str],
+) -> str | None:
+    """多 PDF 会话下，从子 Agent 检索结果推断「本题指向的一篇 paper_id」。"""
+    if len(session_paper_ids) <= 1:
+        return session_paper_ids[0] if session_paper_ids else None
+    if _COMPLEX_HINTS.search(query):
+        return None
+
+    session = set(session_paper_ids)
+    counts: dict[str, int] = {}
+    for sa in valid:
+        for c in sa.get("citations") or []:
+            pid = str(c.get("paper_id", ""))
+            if pid in session:
+                counts[pid] = counts.get(pid, 0) + 1
+    if not counts:
+        return None
+
+    ranked = sorted(counts.items(), key=lambda x: (-x[1], x[0]))
+    top_pid, top_n = ranked[0]
+    second_n = ranked[1][1] if len(ranked) > 1 else 0
+    if top_n > second_n:
+        return top_pid
+    if _SINGLE_PAPER_QUERY_HINTS.search(query):
+        return top_pid
+    return None
+
+
+def _remap_answer_citations_to_final(
+    answer: str,
+    sa_citations: list[dict],
+    chunk_to_idx: dict[str, int],
+) -> str:
+    """把子答案里的局部 [n] 映射为 dedupe 后 citation 列表的全局 [n]。"""
+
+    def _map_local(local_n: int) -> int | None:
+        if 1 <= local_n <= len(sa_citations):
+            cid = str(sa_citations[local_n - 1].get("chunk_id", ""))
+            return chunk_to_idx.get(cid) if cid else None
+        return None
+
+    def _replace_bracket(m: re.Match[str]) -> str:
+        mapped: list[str] = []
+        for part in re.split(r"[,，\s]+", m.group(1).strip()):
+            if part.isdigit():
+                idx = _map_local(int(part))
+                if idx is not None:
+                    mapped.append(str(idx))
+        if mapped:
+            return "[" + ", ".join(mapped) + "]"
+        return m.group(0)
+
+    return re.sub(r"\[([^\]]+)\]", _replace_bracket, answer)
+
+
+def _chunk_index_map(citations: list[dict]) -> dict[str, int]:
+    out: dict[str, int] = {}
+    for i, c in enumerate(citations, 1):
+        cid = str(c.get("chunk_id", ""))
+        if cid:
+            out[cid] = i
+    return out
+
+
+def _format_citation_index(citations: list[dict]) -> str:
+    if not citations:
+        return "(no citations)"
+    return "\n".join(
+        f"[{i}] {CitationExtractor.format_citation(c)}"
+        for i, c in enumerate(citations, 1)
+    )
+
+
+def _synthesis_fallback(state: AgentState) -> str:
+    """合成只输出 [n] 时，回退到最相关子答案（引用已映射到全局编号）。"""
+    valid = _collect_valid_evidence(_sub_answers_for_turn(state))
+    if not valid:
+        return ""
+    query = sanitize_query(state["query"])
+    sa = next((x for x in valid if x.get("query") == query), valid[0])
+    final_citations = state.get("citations") or []
+    return _remap_answer_citations_to_final(
+        str(sa.get("answer", "")),
+        sa.get("citations") or [],
+        _chunk_index_map(final_citations),
+    )
+
 
 async def analyze_query(state: AgentState, llm: BaseChatModel) -> dict:
     """
@@ -250,7 +340,7 @@ async def analyze_query(state: AgentState, llm: BaseChatModel) -> dict:
 async def classify_query(state: AgentState, llm: BaseChatModel) -> dict:
     """
     查询分类：决定检索时是否按 section_type（experiment/method/background）过滤。
-    同时写入 ContextVar 供 tools.paper_retrieval 使用。
+    同时写入 ContextVar 供 section_type 路由使用。
     """
     from .tools import set_query_type
     query = sanitize_query(state["query"])
@@ -290,33 +380,59 @@ def prepare_synthesis(state: AgentState) -> dict:
     sub_answers = _sub_answers_for_turn(state)
     valid = _collect_valid_evidence(sub_answers)
     context_header = _build_context_header(state)
+    session_paper_ids = state.get("paper_ids") or []
+
+    pooled: list[dict] = []
+    for sa in valid:
+        pooled.extend(sa.get("citations") or [])
+
+    focus_paper = _infer_focus_paper_id(state["query"], valid, session_paper_ids)
+    focus_applied = False
+    if focus_paper:
+        filtered = [c for c in pooled if c.get("paper_id") == focus_paper]
+        if filtered:
+            pooled = filtered
+            focus_applied = True
+            logger.info("Synthesis focus paper: %s (multi-PDF session)", focus_paper)
+
+    final_citations = _dedupe_citations(pooled)
+    chunk_to_idx = _chunk_index_map(final_citations)
 
     context_parts = []
-    all_citations = []
-    global_idx = 0
     for i, sa in enumerate(valid, 1):
-        remapped = _remap_citations(sa["answer"], global_idx)
-        context_parts.append(
-            f"### Evidence {i}\nSub-question: {sa['query']}\nAnswer: {remapped}"
+        sa_cites = sa.get("citations") or []
+        if focus_applied:
+            sa_cites = [c for c in sa_cites if c.get("paper_id") == focus_paper]
+            if not sa_cites:
+                continue
+        remapped = _remap_answer_citations_to_final(
+            str(sa.get("answer", "")),
+            sa_cites,
+            chunk_to_idx,
         )
-        sa_citations = sa.get("citations", [])
-        all_citations.extend(sa_citations)
-        global_idx += max(len(sa_citations), 1)
+        context_parts.append(
+            f"### Evidence {i}\nSub-question: {sa['query']}\nFindings: {remapped}"
+        )
 
     sub_context = "\n\n".join(context_parts) if context_parts else "(no valid evidence)"
+    focus_note = ""
+    if focus_applied:
+        focus_note = (
+            f"\n# Scope\nThis question targets paper `{focus_paper}`; "
+            "cite only indices for that paper."
+        )
 
     trace = get_trace(state.get("trace_id"))
     if trace:
         trace.prepare_synthesis(sub_answers)
 
-    system_content = SYNTHESIZER.format(context=sub_context)
+    system_content = SYNTHESIZER.format(
+        citation_index=_format_citation_index(final_citations),
+        context=sub_context,
+        focus_note=focus_note,
+    )
     if context_header:
         system_content += f"\n\n# Conversation Context\n{context_header}"
-    if valid:
-        system_content += (
-            f"\n\n# Note\n{len(valid)} verified evidence block(s) above. "
-            "You must answer the original question from them; do not claim insufficient information."
-        )
 
     user_lang = _query_language(state["query"])
     lang_hint = "Respond in Chinese." if user_lang == "zh" else "Respond in English."
@@ -328,7 +444,7 @@ def prepare_synthesis(state: AgentState) -> dict:
                 content=f"Original question: {state['query']}\n{lang_hint}"
             ),
         ],
-        "citations": _dedupe_citations(all_citations),
+        "citations": final_citations,
     }
 
 
@@ -342,6 +458,11 @@ async def synthesize(state: AgentState, llm: BaseChatModel) -> dict:
         if chunk.content:
             chunks.append(chunk.content)
     answer = "".join(chunks)
+    if is_citation_only_answer(answer):
+        fallback = _synthesis_fallback(state)
+        if fallback:
+            logger.warning("Synthesizer returned citation-only answer; using sub-answer fallback")
+            answer = fallback
     trace = get_trace(state.get("trace_id"))
     if trace:
         trace.synthesize(answer)
