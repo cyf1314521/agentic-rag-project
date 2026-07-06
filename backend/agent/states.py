@@ -20,6 +20,8 @@ class SubAnswer(TypedDict):
     query: str       # 子查询原文
     answer: str      # 该子查询下的生成答案（含 [n] 引用）
     citations: list[dict]  # 引用元数据列表
+    status: str      # "ok" | "failed"
+    error: str       # 失败原因；成功时为 ""
 
 
 def merge_sub_answers(left: list[SubAnswer], right: list[SubAnswer]) -> list[SubAnswer]:
@@ -60,6 +62,7 @@ class AgentState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]  # 多轮对话历史（Human/AI）
     query: str                    # 当前轮用户问题
     trace_id: str                 # 可观测日志关联 ID（chat 入口生成）
+    turn_id: str                  # 本轮请求 ID（幂等 / 续跑预留）
     query_type: str               # classify 节点输出：experimental_result | method | background | general
     paper_ids: list[str]         # 本会话检索范围（session_papers）
     summary: str                  # 超长对话的 LLM 摘要
@@ -70,12 +73,14 @@ class AgentState(TypedDict):
     answer: str                   # synthesize 后的最终回答
     citations: Annotated[list[dict], merge_citations]  # 合成阶段汇总的引用
     synth_messages: list[AnyMessage]  # prepare_synthesis 构建的 LLM 消息列表
+    failed_sub_queries: list[dict]  # prepare_synthesis：硬失败的子问题 [{query, error}]
 
 
 def fresh_turn_state(
     query: str,
     trace_id: str,
     paper_ids: list[str] | None = None,
+    turn_id: str = "",
 ) -> AgentState:
     """
     每轮对话/评测的初始主图 state。
@@ -87,6 +92,7 @@ def fresh_turn_state(
         {
             "query": query,
             "trace_id": trace_id,
+            "turn_id": turn_id,
             "paper_ids": paper_ids or [],
             "messages": [],
             "summary": "",
@@ -98,6 +104,7 @@ def fresh_turn_state(
             "citations": Overwrite([]),
             "answer": "",
             "synth_messages": [],
+            "failed_sub_queries": [],
         },
     )
 

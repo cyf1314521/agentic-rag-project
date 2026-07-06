@@ -83,6 +83,7 @@ Bad: 请参考 [1], [2]
 # Evidence
 {context}
 {focus_note}
+{failure_note}
 """
 
 GENERATOR = """\

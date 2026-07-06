@@ -137,12 +137,21 @@ class ChatTrace:
         sub_query: str,
         answer: str,
         citation_count: int,
+        status: str = "ok",
     ) -> None:
         self._emit(
             "sub_agent_done",
             sub_query=sub_query,
             citation_count=citation_count,
             answer_preview=_preview(str(answer)),
+            status=status,
+        )
+
+    def sub_agent_failed(self, *, sub_query: str, error: str) -> None:
+        self._emit(
+            "sub_agent_failed",
+            sub_query=sub_query,
+            error=error,
         )
 
     def prepare_synthesis(self, sub_answers: Sequence[Mapping[str, Any]]) -> None:

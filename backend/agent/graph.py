@@ -12,7 +12,9 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.types import Send
 
-from .states import AgentState, SubAgentState, SubAnswer
+from config import Config
+from .states import AgentState, SubAgentState
+from .resilience import invoke_with_timeout, make_failed_sub_answer, make_sub_answer
 from .nodes import (
     analyze_query,
     classify_query,
@@ -30,10 +32,11 @@ from .nodes import (
 def _collect_sub_answer(state: SubAgentState) -> dict:
     """子图结束后，将结果包装为 sub_answers 列表项供主图 reducer 合并。"""
     return {
-        "sub_answers": [SubAnswer(
+        "sub_answers": [make_sub_answer(
             query=state["query"],
             answer=state.get("answer", ""),
             citations=state.get("citations", []),
+            status="ok",
         )]
     }
 
@@ -116,10 +119,16 @@ def build_graph(
         ]
 
     async def sub_agent_node(state: dict[str, Any]) -> dict:
-        """每个 Send  payload 进入此节点：编译子图并 ainvoke。"""
+        """
+        每个 Send payload 进入此节点：编译子图并 ainvoke。
+
+        容错：子图超时或异常时不向上抛错，返回 status=failed 的 Fallback SubAnswer，
+        保证并行其它子图与主图后续 synthesize 仍能继续。
+        """
+        sub_query = state["query"]
         sub_graph = _build_sub_agent_graph(llm, retriever, citation_extractor, max_retries, vision_service).compile()
         sub_input = {
-            "query": state["query"],
+            "query": sub_query,
             "trace_id": state.get("trace_id", ""),
             "query_type": state.get("query_type", "general"),
             "paper_ids": state.get("paper_ids") or [],
@@ -131,15 +140,26 @@ def build_graph(
             "retries": 0,
             "needs_vlm": False,
         }
-        result = await sub_graph.ainvoke(sub_input)
+        result, err = await invoke_with_timeout(
+            sub_graph.ainvoke(sub_input),
+            timeout_sec=Config.SUB_AGENT_TIMEOUT,
+            label=f"sub_agent({sub_query[:40]!r})",
+        )
+
         from rag.chat_trace import get_trace
 
         trace = get_trace(state.get("trace_id", ""))
+        if err:
+            if trace:
+                trace.sub_agent_failed(sub_query=sub_query, error=err)
+            return {"sub_answers": [make_failed_sub_answer(sub_query, err)]}
+
         if trace:
             trace.sub_agent_done(
-                sub_query=result.get("query", state["query"]),
+                sub_query=result.get("query", sub_query),
                 answer=str(result.get("answer", "")),
                 citation_count=len(result.get("citations") or []),
+                status="ok",
             )
         return _collect_sub_answer(cast(SubAgentState, result))
 

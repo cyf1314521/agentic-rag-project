@@ -50,6 +50,10 @@ class Config:
     LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "600"))  # 单次 LLM 请求超时（秒），Ollama 本地模型宜设大一些
     MAX_RETRIES = int(os.getenv("MAX_RETRIES", "2"))  # 子 Agent 反思不足时的最大重试次数
 
+    # ---------- Agent 容错：子图超时（秒）----------
+    # 单路子图（retrieve→generate→reflect 含重试）的总预算；超时则 Fallback SubAnswer
+    SUB_AGENT_TIMEOUT = int(os.getenv("SUB_AGENT_TIMEOUT", "120"))
+
     # ---------- 视觉语言模型 VLM（图表理解，可选）----------
     VLM_ENABLED = os.getenv("VLM_ENABLED", "false").lower() == "true"
     VLM_BASE_URL = os.getenv("VLM_BASE_URL", "http://localhost:11434/v1")

@@ -2,7 +2,8 @@
 聊天 API：基于 SSE 的流式多智能体问答。
 
 事件类型（JSON 行，前端 api.js 解析）：
-  session_id → status → sub_queries → answer（增量）→ citations → done | error
+  session_id → turn_id → status → sub_queries → sub_agent_status →
+  warnings → answer（增量）→ citations → done | error
 """
 
 import json
@@ -21,6 +22,7 @@ from app.store import create_session, get_session, update_session, get_session_p
 from agent.graph import build_graph
 from agent.nodes import sanitize_query
 from agent.states import fresh_turn_state
+from agent.resilience import is_failed_sub_answer
 from rag.citation import CitationExtractor
 from rag.chat_trace import start_trace, finish_trace, get_trace
 
@@ -71,16 +73,20 @@ async def _stream_response(graph, query: str, session_id: str) -> AsyncGenerator
             "Upload PDFs in this chat to enable scope.",
             session_id,
         )
-    graph_input = fresh_turn_state(query, trace_id, paper_ids=paper_ids)
+    turn_id = uuid.uuid4().hex[:16]
+    graph_input = fresh_turn_state(query, trace_id, paper_ids=paper_ids, turn_id=turn_id)
     start_trace(session_id, query, trace_id=trace_id)
 
     yield json.dumps({"type": "session_id", "data": session_id})
+    yield json.dumps({"type": "turn_id", "data": turn_id})
     yield json.dumps({"type": "status", "data": "analyzing"})
 
     try:
         final_citations = []
         final_answer = ""
         answer_buf = ""
+        failed_sub_queries: list[dict] = []
+        partial_failure = False
 
         async for chunk in graph.astream(graph_input, config=config, stream_mode=["updates", "messages"]):
             stream_type, data = chunk
@@ -94,10 +100,39 @@ async def _stream_response(graph, query: str, session_id: str) -> AsyncGenerator
                             yield json.dumps({"type": "sub_queries", "data": sq})
                             yield json.dumps({"type": "status", "data": "searching"})
 
+                    # 每路子 Agent 完成（成功或 Fallback 失败占位）
+                    if node_name == "sub_agent":
+                        for sa in node_output.get("sub_answers", []):
+                            status = "failed" if is_failed_sub_answer(sa) else "ok"
+                            if status == "failed":
+                                partial_failure = True
+                            yield json.dumps({
+                                "type": "sub_agent_status",
+                                "data": {
+                                    "query": sa.get("query", ""),
+                                    "status": status,
+                                    "error": sa.get("error", ""),
+                                },
+                            })
+
                     # 合成前已汇总全部引用
                     if node_name == "prepare_synthesis":
                         final_citations = node_output.get("citations", [])
-                        logger.info(f"prepare_synthesis: {len(final_citations)} citations")
+                        failed_sub_queries = node_output.get("failed_sub_queries", [])
+                        if failed_sub_queries:
+                            partial_failure = True
+                            yield json.dumps({
+                                "type": "warnings",
+                                "data": [
+                                    f"Sub-query retrieval failed: {item.get('query', '')} ({item.get('error', '')})"
+                                    for item in failed_sub_queries
+                                ],
+                            })
+                        logger.info(
+                            "prepare_synthesis: %d citations, %d failed sub-queries",
+                            len(final_citations),
+                            len(failed_sub_queries),
+                        )
 
             elif stream_type == "messages":
                 msg, metadata = data
@@ -110,13 +145,23 @@ async def _stream_response(graph, query: str, session_id: str) -> AsyncGenerator
         if not final_answer:
             yield json.dumps({"type": "answer", "data": ""})
 
-        # 流结束后写入 checkpoint：用户问 + 助手答（含 citations 元数据）
+        # 流结束后写入 checkpoint：用户问 + 助手答（含 citations / partial 元数据）
         await graph.aupdate_state(config, {
             "messages": [
                 HumanMessage(content=query),
-                AIMessage(content=final_answer, additional_kwargs={"citations": final_citations}),
+                AIMessage(
+                    content=final_answer,
+                    additional_kwargs={
+                        "citations": final_citations,
+                        "turn_id": turn_id,
+                        "partial_failure": partial_failure,
+                        "failed_sub_queries": failed_sub_queries,
+                    },
+                ),
             ],
             "answer": final_answer,
+            "turn_id": turn_id,
+            "failed_sub_queries": failed_sub_queries,
         })
 
         yield json.dumps({"type": "citations", "data": final_citations})
@@ -127,7 +172,10 @@ async def _stream_response(graph, query: str, session_id: str) -> AsyncGenerator
         if session and not session.get("title"):
             await update_session(session_id, title=title_hint)
 
-        yield json.dumps({"type": "done", "data": None})
+        yield json.dumps({
+            "type": "done",
+            "data": {"partial": partial_failure, "failed_count": len(failed_sub_queries)},
+        })
 
     except Exception as e:
         logger.exception("Chat error")

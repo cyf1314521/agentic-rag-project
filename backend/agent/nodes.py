@@ -19,6 +19,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.documents import Document
 
 from .states import AgentState, SubAgentState
+from .resilience import is_failed_sub_answer
 from .prompts import QUERY_ANALYZER, QUERY_CLASSIFIER, SYNTHESIZER, GENERATOR, REFLECTOR, SUMMARIZER
 from rag.chat_trace import get_trace
 from rag.citation import CitationExtractor, is_citation_only_answer
@@ -142,6 +143,8 @@ def _dedupe_citations(citations: list[dict]) -> list[dict]:
 def _collect_valid_evidence(sub_answers: list) -> list:
     valid = []
     for sa in sub_answers:
+        if is_failed_sub_answer(sa):
+            continue
         ans = str(sa.get("answer", "")).strip()
         if len(ans) < 30 or is_citation_only_answer(ans):
             continue
@@ -268,6 +271,27 @@ def _remap_answer_citations_to_final(
     return re.sub(r"\[([^\]]+)\]", _replace_bracket, answer)
 
 
+def _format_failed_sub_queries(sub_answers: list) -> tuple[str, list[dict]]:
+    """从 sub_answers 提取失败子问题，供合成提示与 SSE warnings 使用。"""
+    failed = [
+        {"query": sa["query"], "error": sa.get("error") or "unknown error"}
+        for sa in sub_answers
+        if is_failed_sub_answer(sa)
+    ]
+    if not failed:
+        return "", []
+    lines = [f"- {item['query']}: {item['error']}" for item in failed]
+    note = (
+        "\n# Unavailable Evidence\n"
+        "The following sub-questions could NOT be retrieved (network/timeout). "
+        "Do NOT invent facts for them; answer from available evidence only. "
+        "If the user question depends mainly on a failed sub-question, state briefly "
+        "that part of the retrieval was unavailable.\n"
+        + "\n".join(lines)
+    )
+    return note, failed
+
+
 def _chunk_index_map(citations: list[dict]) -> dict[str, int]:
     out: dict[str, int] = {}
     for i, c in enumerate(citations, 1):
@@ -376,9 +400,10 @@ async def classify_query(state: AgentState, llm: BaseChatModel) -> dict:
 
 
 def prepare_synthesis(state: AgentState) -> dict:
-    """汇总有效子答案证据，构建 synthesize 消息（过滤 insufficient / 空答案）。"""
+    """汇总有效子答案证据，构建 synthesize 消息（过滤 insufficient / 空答案 / 硬失败）。"""
     sub_answers = _sub_answers_for_turn(state)
     valid = _collect_valid_evidence(sub_answers)
+    failure_note, failed_sub_queries = _format_failed_sub_queries(sub_answers)
     context_header = _build_context_header(state)
     session_paper_ids = state.get("paper_ids") or []
 
@@ -430,6 +455,7 @@ def prepare_synthesis(state: AgentState) -> dict:
         citation_index=_format_citation_index(final_citations),
         context=sub_context,
         focus_note=focus_note,
+        failure_note=failure_note,
     )
     if context_header:
         system_content += f"\n\n# Conversation Context\n{context_header}"
@@ -445,6 +471,7 @@ def prepare_synthesis(state: AgentState) -> dict:
             ),
         ],
         "citations": final_citations,
+        "failed_sub_queries": failed_sub_queries,
     }
 
 

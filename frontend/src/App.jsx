@@ -66,6 +66,7 @@ export default function App() {
     let sessionId = currentId;
     let answer = '';
     let citations = [];
+    let warnings = [];
 
     const cancel = streamChat(query, sessionId, (evt) => {
       switch (evt.type) {
@@ -73,16 +74,23 @@ export default function App() {
           sessionId = evt.data;
           setCurrentId(evt.data);
           break;
-        case 'answer':
+        case 'warnings':
+          warnings = evt.data || [];
+          break;
+        case 'answer': {
           answer = evt.data;
+          const display = warnings.length
+            ? `${answer}\n\n⚠ ${warnings.join(' ')}`
+            : answer;
           setMessages((prev) => {
             const last = prev[prev.length - 1];
             if (last && last.role === 'assistant' && !last.finalized) {
-              return prev.slice(0, -1).concat({ ...last, content: answer });
+              return prev.slice(0, -1).concat({ ...last, content: display, warnings });
             }
-            return [...prev, { role: 'assistant', content: answer, citations: [], finalized: false }];
+            return [...prev, { role: 'assistant', content: display, citations: [], warnings, finalized: false }];
           });
           break;
+        }
         case 'citations':
           citations = evt.data;
           setMessages((prev) =>
