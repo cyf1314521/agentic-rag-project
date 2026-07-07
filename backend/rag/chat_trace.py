@@ -68,7 +68,143 @@ class ChatTrace:
         logger.info("CHAT_TRACE %s", json.dumps(event, ensure_ascii=False))
 
     def classify(self, query_type: str) -> None:
+        """Deprecated: classify node removed; kept for old trace readers."""
         self._emit("classify", query_type=query_type)
+
+    def gateway_resolution(
+        self,
+        *,
+        action: str,
+        reason: str,
+        gate_query: str = "",
+        content_score: float | None = None,
+        best_paper_id: str | None = None,
+        latency_ms: float = 0.0,
+        detail: dict | None = None,
+    ) -> None:
+        payload: dict[str, Any] = {
+            "action": action,
+            "reason": reason,
+            "gate_query": _preview(gate_query),
+        }
+        if content_score is not None:
+            payload["content_score"] = round(content_score, 4)
+        if best_paper_id:
+            payload["best_paper_id"] = best_paper_id
+        if latency_ms:
+            payload["latency_ms"] = round(latency_ms, 2)
+        if detail:
+            payload["detail"] = detail
+        self._emit("gateway", **payload)
+
+    def intent_resolution(
+        self,
+        *,
+        intent: str,
+        scope_mode: str,
+        session_paper_ids: list[str],
+        focus_paper_ids: list[str],
+        needs_clarification: bool,
+        match_reason: str,
+        candidate_paper_ids: list[str] | None = None,
+        retrieval_mode: str = "body",
+        confidence: float | None = None,
+        missing_slots: list[str] | None = None,
+        gateway_reason: str = "",
+        content_score: float | None = None,
+    ) -> None:
+        payload: dict[str, Any] = {
+            "intent": intent,
+            "scope_mode": scope_mode,
+            "session_paper_ids": session_paper_ids,
+            "focus_paper_ids": focus_paper_ids,
+            "needs_clarification": needs_clarification,
+            "match_reason": match_reason,
+            "candidate_paper_ids": candidate_paper_ids or [],
+            "retrieval_mode": retrieval_mode,
+        }
+        if confidence is not None:
+            payload["confidence"] = confidence
+        if missing_slots:
+            payload["missing_slots"] = missing_slots
+        if gateway_reason:
+            payload["gateway_reason"] = gateway_reason
+        if content_score is not None:
+            payload["content_score"] = round(content_score, 4)
+        self._emit("intent_resolution", **payload)
+
+    def evidence_gate(
+        self,
+        *,
+        passed: bool,
+        top_score: float,
+        signal: str,
+        reason: str,
+        sub_query: str = "",
+    ) -> None:
+        self._emit(
+            "evidence_gate",
+            passed=passed,
+            top_score=round(top_score, 4),
+            signal=signal,
+            reason=reason,
+            sub_query=_preview(sub_query),
+        )
+
+    def grounding_check(
+        self,
+        *,
+        ok: bool,
+        citation_coverage: float,
+        reason: str,
+        stripped_indices: list[int] | None = None,
+    ) -> None:
+        payload: dict[str, Any] = {
+            "ok": ok,
+            "citation_coverage": round(citation_coverage, 4),
+            "reason": reason,
+        }
+        if stripped_indices:
+            payload["stripped_indices"] = stripped_indices
+        self._emit("grounding_check", **payload)
+
+    def compliance_block(self, *, reason: str) -> None:
+        self._emit("compliance_block", reason=reason, blocked=True)
+
+    def scope_resolution(
+        self,
+        *,
+        scope_mode: str,
+        session_paper_ids: list[str],
+        focus_paper_ids: list[str],
+        needs_clarification: bool,
+        match_reason: str,
+        candidate_paper_ids: list[str] | None = None,
+    ) -> None:
+        """Deprecated alias for intent_resolution."""
+        self.intent_resolution(
+            intent="paper_qa",
+            scope_mode=scope_mode,
+            session_paper_ids=session_paper_ids,
+            focus_paper_ids=focus_paper_ids,
+            needs_clarification=needs_clarification,
+            match_reason=match_reason,
+            candidate_paper_ids=candidate_paper_ids,
+        )
+
+    def query_rewrite(self, *, raw_query: str, effective_query: str, reason: str) -> None:
+        self._emit(
+            "query_rewrite",
+            raw_query=raw_query,
+            effective_query=effective_query,
+            reason=reason,
+        )
+
+    def clarification_response(self, message: str) -> None:
+        self._emit(
+            "clarification",
+            message_preview=_preview(str(message), limit=500),
+        )
 
     def analyze(self, sub_queries: list[str], *, complexity: str | None = None) -> None:
         payload: dict[str, Any] = {"sub_queries": sub_queries, "count": len(sub_queries)}
@@ -85,6 +221,8 @@ class ChatTrace:
         docs: list[Document],
         merged_total: Optional[int] = None,
         paper_id_filter: Optional[list[str]] = None,
+        node_type_filter: Optional[list[str]] = None,
+        retrieval_mode: str = "body",
     ) -> None:
         self._emit(
             "retrieval",
@@ -92,6 +230,8 @@ class ChatTrace:
             search_queries=search_queries,
             section_type_filter=section_type_filter,
             paper_id_filter=paper_id_filter,
+            node_type_filter=node_type_filter,
+            retrieval_mode=retrieval_mode,
             hit_count=len(docs),
             merged_total=merged_total,
             hits=[_doc_hit(i + 1, d) for i, d in enumerate(docs)],
@@ -121,14 +261,37 @@ class ChatTrace:
         retry_queries: list[str],
         retries: int,
         answer_preview: str = "",
+        skipped_reason: str = "",
+    ) -> None:
+        payload: dict[str, Any] = {
+            "sub_query": sub_query,
+            "is_sufficient": is_sufficient,
+            "retry_queries": retry_queries,
+            "retries": retries,
+            "answer_preview": _preview(answer_preview),
+        }
+        if skipped_reason:
+            payload["skipped_reason"] = skipped_reason
+        self._emit("reflect", **payload)
+
+    def retry_attempt(
+        self,
+        *,
+        operation: str,
+        attempt: int,
+        max_attempts: int,
+        error: str,
+        sub_query: str = "",
+        search_query: str = "",
     ) -> None:
         self._emit(
-            "reflect",
+            "retry_attempt",
+            operation=operation,
+            attempt=attempt,
+            max_attempts=max_attempts,
+            error=error,
             sub_query=sub_query,
-            is_sufficient=is_sufficient,
-            retry_queries=retry_queries,
-            retries=retries,
-            answer_preview=_preview(answer_preview),
+            search_query=search_query,
         )
 
     def sub_agent_done(

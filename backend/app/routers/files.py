@@ -2,6 +2,7 @@
 PDF 上传与文件管理 API。
 
 入库流程：校验 → SHA256 去重 → 落盘 → Docling 解析 → 父子分块 → 写入 Milvus → 记录 files 表
+paper_profile 在核心入库成功后由 BackgroundTasks 异步追加（不阻塞 HTTP）。
 """
 
 import uuid
@@ -10,11 +11,12 @@ import logging
 import shutil
 from pathlib import Path
 
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
 import aiofiles
 
 from config import Config
 from app.dependencies import get_pdf_parser, get_rag_integration, get_retriever
+from app.ingest_tasks import build_paper_profile_background
 from app.store import (
     add_file,
     list_files,
@@ -22,6 +24,7 @@ from app.store import (
     get_file,
     create_session,
     link_session_paper,
+    update_file_profile_status,
 )
 from rag.parse_artifact import ParseRecorder, save_parse_artifact, delete_parse_artifact
 
@@ -31,6 +34,7 @@ router = APIRouter(prefix="/api/files", tags=["files"])
 
 @router.post("/upload")
 async def upload_files(
+    background_tasks: BackgroundTasks,
     files: list[UploadFile] = File(...),
     session_id: str | None = Form(None),
 ):
@@ -38,6 +42,7 @@ async def upload_files(
     POST /api/files/upload — 批量上传 PDF（multipart）。
 
     单文件可能返回 status: ok | duplicate | error
+    核心正文入库成功后立即返回；paper_profile 异步生成（profile_status=pending）。
     """
     upload_dir = Path(Config.UPLOAD_DIR)
     upload_dir.mkdir(parents=True, exist_ok=True)
@@ -61,7 +66,6 @@ async def upload_files(
 
         content_hash = hashlib.sha256(content).hexdigest()
 
-        # 通过 Milvus 元数据 content_hash 判断是否已索引相同内容
         retriever = get_retriever()
         updater = retriever.get_updater()
         existing_paper = updater.has_content_hash(content_hash)
@@ -81,7 +85,7 @@ async def upload_files(
             continue
 
         file_id = str(uuid.uuid4())
-        paper_id = Path(f.filename).stem  # 用文件名（无扩展名）作为论文 ID
+        paper_id = Path(f.filename).stem
         save_path = upload_dir / f"{file_id}.pdf"
 
         async with aiofiles.open(save_path, "wb") as out:
@@ -97,6 +101,7 @@ async def upload_files(
                 content_hash=content_hash,
             )
 
+        artifact_path: Path | None = None
         try:
             parser = get_pdf_parser()
             nodes = parser.parse(str(save_path), paper_id, recorder=recorder)
@@ -134,6 +139,7 @@ async def upload_files(
                 artifact_path = save_parse_artifact(recorder, nodes)
                 logger.info("Parse artifact saved: %s", artifact_path)
 
+            profile_status = "pending" if Config.PAPER_PROFILE_ENABLED else "skipped"
             record = await add_file(
                 file_id=file_id,
                 filename=f.filename,
@@ -141,12 +147,29 @@ async def upload_files(
                 size_bytes=len(content),
                 page_count=max((n.page_num for n in nodes), default=0),
                 chunk_count=len(children),
+                profile_status=profile_status,
             )
             if session_id:
                 await link_session_paper(session_id, paper_id)
+
             payload = {"filename": f.filename, "status": "ok", **record}
-            if recorder:
+            if artifact_path:
                 payload["parse_artifact"] = str(artifact_path)
+
+            if Config.PAPER_PROFILE_ENABLED and artifact_path:
+                background_tasks.add_task(
+                    build_paper_profile_background,
+                    file_id,
+                    paper_id,
+                    content_hash,
+                    str(artifact_path),
+                )
+                payload["profile_status"] = "pending"
+                payload["detail"] = "正文已入库，论文画像后台生成中（discovery 检索稍后可用）。"
+            elif Config.PAPER_PROFILE_ENABLED:
+                await update_file_profile_status(file_id, "skipped", profile_error="no parse artifact")
+                payload["profile_status"] = "skipped"
+
             results.append(payload)
         except Exception as e:
             logger.exception(f"Failed to process {f.filename}")

@@ -34,6 +34,9 @@ CREATE TABLE IF NOT EXISTS files (
     size_bytes BIGINT NOT NULL DEFAULT 0,
     page_count INTEGER NOT NULL DEFAULT 0,
     chunk_count INTEGER NOT NULL DEFAULT 0,
+    profile_status TEXT NOT NULL DEFAULT 'skipped',
+    profile_chunk_count INTEGER NOT NULL DEFAULT 0,
+    profile_error TEXT NOT NULL DEFAULT '',
     created_at DOUBLE PRECISION NOT NULL
 )"""
 
@@ -55,7 +58,19 @@ async def init_store(pool: AsyncConnectionPool):  # type: ignore[type-arg]
         await execute(conn, _SESSIONS_DDL)
         await execute(conn, _FILES_DDL)
         await execute(conn, _SESSION_PAPERS_DDL)
+        await _migrate_files_schema(conn)
         await conn.commit()
+
+
+async def _migrate_files_schema(conn) -> None:
+    """为已有库补齐 profile 相关列（幂等）。"""
+    alters = [
+        "ALTER TABLE files ADD COLUMN IF NOT EXISTS profile_status TEXT NOT NULL DEFAULT 'skipped'",
+        "ALTER TABLE files ADD COLUMN IF NOT EXISTS profile_chunk_count INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE files ADD COLUMN IF NOT EXISTS profile_error TEXT NOT NULL DEFAULT ''",
+    ]
+    for stmt in alters:
+        await execute(conn, stmt)
 
 
 def _get_pool() -> AsyncConnectionPool:
@@ -155,26 +170,50 @@ async def get_session_paper_ids(session_id: str) -> list[str]:
 async def add_file(
     file_id: str, filename: str, paper_id: str,
     size_bytes: int = 0, page_count: int = 0, chunk_count: int = 0,
+    *,
+    profile_status: str = "skipped",
 ) -> dict:
     """插入或更新文件记录（同一 file_id 重复上传时 UPSERT）。"""
     now = time.time()
     async with _get_pool().connection() as conn:
         await execute(
             conn,
-            "INSERT INTO files (file_id, filename, paper_id, size_bytes, page_count, chunk_count, created_at) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s) "
+            "INSERT INTO files (file_id, filename, paper_id, size_bytes, page_count, chunk_count, "
+            "profile_status, profile_chunk_count, profile_error, created_at) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, 0, '', %s) "
             "ON CONFLICT (file_id) DO UPDATE SET "
             "filename=EXCLUDED.filename, paper_id=EXCLUDED.paper_id, "
             "size_bytes=EXCLUDED.size_bytes, page_count=EXCLUDED.page_count, "
-            "chunk_count=EXCLUDED.chunk_count",
-            (file_id, filename, paper_id, size_bytes, page_count, chunk_count, now),
+            "chunk_count=EXCLUDED.chunk_count, profile_status=EXCLUDED.profile_status, "
+            "profile_chunk_count=0, profile_error=''",
+            (file_id, filename, paper_id, size_bytes, page_count, chunk_count, profile_status, now),
         )
         await conn.commit()
     return {
         "file_id": file_id, "filename": filename, "paper_id": paper_id,
         "size_bytes": size_bytes, "page_count": page_count,
-        "chunk_count": chunk_count, "created_at": now,
+        "chunk_count": chunk_count, "profile_status": profile_status,
+        "created_at": now,
     }
+
+
+async def update_file_profile_status(
+    file_id: str,
+    status: str,
+    *,
+    profile_chunk_count: int = 0,
+    profile_error: str = "",
+) -> bool:
+    """后台 paper_profile 任务更新画像状态（pending|processing|ready|failed|skipped）。"""
+    async with _get_pool().connection() as conn:
+        cur = await execute(
+            conn,
+            "UPDATE files SET profile_status = %s, profile_chunk_count = %s, profile_error = %s "
+            "WHERE file_id = %s",
+            (status, profile_chunk_count, profile_error, file_id),
+        )
+        await conn.commit()
+        return cur.rowcount > 0
 
 
 async def list_files() -> list[dict]:

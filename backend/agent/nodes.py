@@ -2,16 +2,17 @@
 LangGraph 节点函数实现。
 
 分两类：
-1. 主图节点：summarize / classify / analyze / prepare_synthesis / synthesize
+1. 主图节点：summarize / resolve_intent / analyze / prepare_synthesis / synthesize
 2. 子图节点：retrieve / generate / reflect / prepare_retry / should_retry
 
-依赖 Pydantic 结构化输出（QueryAnalysis、QueryClassification、ReflectionResult）
+依赖 Pydantic 结构化输出（QueryAnalysis、ReflectionResult）
 保证 LLM 返回可解析 JSON。
 """
 
 import re
 import logging
-from typing import cast
+import asyncio
+from typing import Any, cast
 
 from pydantic import BaseModel, Field
 from langchain_core.messages import SystemMessage, HumanMessage, RemoveMessage, AIMessage
@@ -19,10 +20,34 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.documents import Document
 
 from .states import AgentState, SubAgentState
-from .resilience import is_failed_sub_answer
-from .prompts import QUERY_ANALYZER, QUERY_CLASSIFIER, SYNTHESIZER, GENERATOR, REFLECTOR, SUMMARIZER
+from .resilience import (
+    is_failed_sub_answer,
+    retry_async,
+    retry_sync,
+    effective_timeout,
+    parse_backoff_ms,
+)
+from config import Config
+from app.llm_utils import message_content_to_str
+from .paper_scope import (
+    boost_docs_for_focus_paper,
+    effective_retrieval_paper_ids,
+)
+from .intent import RetrievalIntent, rewrite_query_for_intent, resolve_intent_llm
+from .turn_resolver import resolve_turn
+from .gateway import run_gateway
+from .text_utils import COMPLEX_HINTS, query_language
+from .prompts import QUERY_ANALYZER, SYNTHESIZER, GENERATOR, REFLECTOR, SUMMARIZER
 from rag.chat_trace import get_trace
-from rag.citation import CitationExtractor, is_citation_only_answer
+from rag.citation import (
+    CitationExtractor,
+    is_citation_only_answer,
+    parse_citation_indices,
+    sanitize_answer_citations,
+)
+from rag.evidence_gate import evaluate_evidence
+from rag.grounding_check import check_grounding
+from .compliance_gate import check_compliance, compliance_blocked_reply
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +61,11 @@ _INSUFFICIENT_PHRASES = (
     "does not contain sufficient information",
     "insufficient information",
     "信息不足",
+    "没有包含足够",
+    "没有足够的信息",
+    "没有足够的",
+    "提供的上下文没有",
+    "上下文没有包含",
     "无法回答",
     "cannot answer",
     "no relevant information",
@@ -47,10 +77,6 @@ _SIMPLE_HINTS = re.compile(
     r"what does .+ say|what is the abstract",
     re.I,
 )
-_COMPLEX_HINTS = re.compile(
-    r"对比|比较|分别|差异|以及.+和|vs\.?|compare|respectively|both .+ and",
-    re.I,
-)
 _ABSTRACT_HINTS = re.compile(r"摘要|abstract", re.I)
 _SINGLE_PAPER_QUERY_HINTS = re.compile(
     r"这篇|该论文|该篇|此文|本文|this paper|the paper|摘要里|摘要中|摘要采用|摘要提到|摘要表示|"
@@ -58,8 +84,63 @@ _SINGLE_PAPER_QUERY_HINTS = re.compile(
     re.I,
 )
 
-MAX_SUB_QUERIES_SIMPLE = 2
-MAX_SUB_QUERIES_COMPLEX = 4
+MAX_SUB_QUERIES_SIMPLE = 1
+MAX_SUB_QUERIES_COMPLEX = 2
+
+_RETRIEVE_BACKOFF_MS = parse_backoff_ms(Config.RETRIEVE_RETRY_BACKOFF_MS, (200, 500, 1000))
+_LLM_NODE_BACKOFF_MS = parse_backoff_ms(Config.LLM_NODE_RETRY_BACKOFF_MS, (1000, 3000))
+
+# 并行子 Agent 共享 GPU embedding 时串行检索，避免多路同时 embed 导致步超时
+_RETRIEVE_SEM = asyncio.Semaphore(1)
+
+_INSUFFICIENT_TAIL_RE = re.compile(
+    r"\s*(?:The provided context does not contain sufficient information.*?|"
+    r"This question cannot be answered.*?|"
+    r"I cannot answer.*?)\s*$",
+    re.I | re.DOTALL,
+)
+_PROMPT_LEAK_RE = re.compile(
+    r"\bDualPath\b|KV cache splitting|standard attention",
+    re.I,
+)
+_SOURCE_LINE_RE = re.compile(r"\[Source:[^\]]*\]", re.I)
+
+
+async def _invoke_llm_with_retry(
+    llm: Any,
+    messages: list,
+    *,
+    operation: str,
+    sub_query: str,
+    trace_id: str,
+    step_timeout: float,
+):
+    """子图 generate / reflect 的 LLM 调用：步超时 + 有界重试。"""
+    trace = get_trace(trace_id)
+
+    async def _once():
+        return await asyncio.wait_for(
+            llm.ainvoke(messages),
+            timeout=effective_timeout(step_timeout),
+        )
+
+    def _on_retry(attempt: int, exc: BaseException) -> None:
+        if trace:
+            trace.retry_attempt(
+                operation=operation,
+                attempt=attempt,
+                max_attempts=Config.LLM_NODE_MAX_RETRIES,
+                error=f"{type(exc).__name__}: {exc}",
+                sub_query=sub_query,
+            )
+
+    return await retry_async(
+        _once,
+        label=f"{operation}({sub_query[:30]!r})",
+        max_attempts=Config.LLM_NODE_MAX_RETRIES,
+        backoff_ms=_LLM_NODE_BACKOFF_MS,
+        on_retry=_on_retry,
+    )
 
 
 def _is_insufficient_answer(text: str) -> bool:
@@ -67,8 +148,60 @@ def _is_insufficient_answer(text: str) -> bool:
     return any(p in lower for p in _INSUFFICIENT_PHRASES)
 
 
-def _query_language(query: str) -> str:
-    return "zh" if re.search(r"[\u4e00-\u9fff]", query) else "en"
+def _strip_insufficient_boilerplate(text: str) -> str:
+    """裁掉 generate 尾部英文「信息不足」模板句，保留已生成的有效内容。"""
+    cleaned = _INSUFFICIENT_TAIL_RE.sub("", text or "").strip()
+    cleaned = re.sub(r"\[\d+\]\s*未提供相关信息\.?", "", cleaned).strip()
+    return cleaned or (text or "").strip()
+
+
+def _sanitize_generate_answer(answer: str, context: str) -> str:
+    """去掉 prompt 示例泄漏、Source 行抄录、[i] 占位符等脏输出。"""
+    text = _strip_insufficient_boilerplate(answer)
+    text = _SOURCE_LINE_RE.sub("", text)
+    text = re.sub(r"\[i\]", "", text, flags=re.I)
+    text = re.sub(r"\s+", " ", text).strip()
+
+    if _PROMPT_LEAK_RE.search(text) and not _PROMPT_LEAK_RE.search(context):
+        # 保留含 [n] 引用且像正常答案的句子，丢弃 DualPath 等幻觉句
+        kept: list[str] = []
+        for part in re.split(r"(?<=[。！？.!?])\s+", text):
+            part = part.strip()
+            if not part:
+                continue
+            if _PROMPT_LEAK_RE.search(part) and not re.search(r"\[\d+\]", part):
+                continue
+            kept.append(part)
+        text = " ".join(kept).strip()
+
+    return text or _strip_insufficient_boilerplate(answer)
+
+
+def _ensure_primary_citation(answer: str, documents: list[str], query: str) -> str:
+    """模型未写 [n] 时，为实质性答案补上最相关段落编号。"""
+    text = (answer or "").strip()
+    if not text or not documents or parse_citation_indices(text):
+        return answer
+    if len(text) < 20:
+        return answer
+
+    keywords: list[str] = []
+    q = query or ""
+    if "摘要" in q or "abstract" in q.lower():
+        keywords.extend(["摘要", "Abstract", "abstract"])
+
+    best_idx = 1
+    best_score = -1
+    prefix = text[:100]
+    for i, doc in enumerate(documents, 1):
+        score = sum(1 for kw in keywords if kw in doc)
+        if prefix and prefix in doc:
+            score += 5
+        if score > best_score:
+            best_score = score
+            best_idx = i
+
+    return text.rstrip() + f" [{best_idx}]"
 
 
 def sanitize_query(query: str) -> str:
@@ -80,7 +213,7 @@ def sanitize_query(query: str) -> str:
 
 
 def _heuristic_complexity(query: str) -> str | None:
-    if _COMPLEX_HINTS.search(query):
+    if COMPLEX_HINTS.search(query):
         return "complex"
     if _SIMPLE_HINTS.search(query):
         return "simple"
@@ -88,7 +221,7 @@ def _heuristic_complexity(query: str) -> str | None:
 
 
 def _normalize_sub_queries(query: str, sub_queries: list[str], complexity: str) -> list[str]:
-    lang = _query_language(query)
+    lang = query_language(query)
     max_n = MAX_SUB_QUERIES_SIMPLE if complexity == "simple" else MAX_SUB_QUERIES_COMPLEX
     out: list[str] = []
     seen: set[str] = set()
@@ -102,15 +235,27 @@ def _normalize_sub_queries(query: str, sub_queries: list[str], complexity: str) 
         out.append(sq)
     if query not in out:
         out.insert(0, query)
-    return out[:max_n]
+    out = out[:max_n]
+    if complexity == "simple":
+        return [query]
+    return out[:MAX_SUB_QUERIES_COMPLEX]
 
 
-def _retrieval_query_variants(query: str, queries: list[str]) -> list[str]:
+def _retrieval_query_variants(
+    query: str,
+    queries: list[str],
+    *,
+    focus_paper_ids: list[str] | None = None,
+) -> list[str]:
     """摘要类问题追加检索词，提升命中 摘要/Abstract 段落。"""
+    if focus_paper_ids:
+        return queries[:1]
+    if len(query) >= 28:
+        return queries[:1]
     if not _ABSTRACT_HINTS.search(query):
         return queries
     extra = []
-    if _query_language(query) == "zh":
+    if query_language(query) == "zh":
         extra = ["摘要", "abstract 摘要"]
     else:
         extra = ["abstract", "summary abstract"]
@@ -172,45 +317,239 @@ class QueryAnalysis(BaseModel):
     sub_queries: list[str] = Field(description="Sub-queries for retrieval, original first")
 
 
-class QueryClassification(BaseModel):
-    """classify_query 的结构化输出。"""
-    query_type: str = Field(description="One of: experimental_result, method, background, general")
-
-
 class ReflectionResult(BaseModel):
     """reflect 节点的结构化输出。"""
     is_sufficient: bool = Field(description="Whether the answer is sufficient")
     retry_queries: list[str] = Field(default_factory=list, description="Queries for missing info")
 
 
-def _build_context_header(state: AgentState) -> str:
-    """
-    为多轮对话构建 XML 风格上下文块：摘要 + 最近 WINDOW_SIZE 轮对话。
-    供 analyze / prepare_synthesis 等节点注入系统提示。
-    """
-    parts = []
-    summary = state.get("summary", "")
-    if summary:
-        parts.append(f"<conversation_summary>\n{summary}\n</conversation_summary>")
-
-    recent = state.get("messages", [])[-WINDOW_SIZE:]
-    if recent:
-        lines = []
-        for msg in recent:
-            if isinstance(msg, HumanMessage):
-                role = "User"
-            elif isinstance(msg, AIMessage):
-                role = "Assistant"
-            else:
-                continue
-            lines.append(f"{role}: {msg.content}")
-        if lines:
-            parts.append("<recent_conversation>\n" + "\n".join(lines) + "\n</recent_conversation>")
-
-    return "\n\n".join(parts)
-
-
 # --------------- 主图节点 ---------------
+
+
+async def compliance_gate_node(state: AgentState) -> dict:
+    """可选合规前置：越狱/敏感词拦截，默认关闭。"""
+    result = check_compliance(state.get("query", ""))
+    if not result.blocked:
+        return {"compliance_blocked": False}
+
+    msg = compliance_blocked_reply(state.get("query", ""))
+    trace = get_trace(state.get("trace_id"))
+    if trace:
+        trace.compliance_block(reason=result.reason)
+    return {
+        "compliance_blocked": True,
+        "direct_response": True,
+        "turn_state": "out_of_scope",
+        "answer": msg,
+        "intent": "out_of_domain",
+        "retrieval_mode": "none",
+    }
+
+
+def route_after_compliance(state: AgentState) -> str:
+    if state.get("compliance_blocked"):
+        return "direct"
+    return "intent"
+
+
+async def resolve_intent_node(
+    state: AgentState,
+    llm: BaseChatModel,
+    retriever: Any = None,
+) -> dict:
+    """
+    企业级状态机：CheckSession → Gateway(Corpus) → Rewrite → IntentLLM → SlotValidate。
+    """
+    session_paper_ids = state.get("paper_ids") or []
+    raw_query = (state.get("query") or "").strip()
+    rewrite_reason = ""
+    intent_confidence = 0.0
+    gateway_reason = ""
+    gateway_decision = None
+    slot_memory = state.get("slot_memory")
+    turn_id = state.get("turn_id") or ""
+
+    # Phase 1: CheckSession
+    if not session_paper_ids:
+        placeholder = RetrievalIntent(
+            effective_query=raw_query,
+            intent="need_clarification",
+            missing=[],
+            confidence=0.0,
+        )
+        validated = resolve_turn(
+            placeholder,
+            raw_query,
+            session_paper_ids,
+            raw_query=raw_query,
+            slot_memory=slot_memory,
+            turn_id=turn_id,
+        )
+    else:
+        # Phase 2: Gateway（Meta + Corpus Gate，Rewrite 之前）
+        import asyncio
+
+        from config import Config
+        from rag.factory import EmbeddingService
+
+        embeddings = None
+        try:
+            embeddings = EmbeddingService.get_embeddings(Config.EMBEDDING_MODEL)
+        except Exception:
+            pass
+
+        gateway_decision = await asyncio.to_thread(
+            run_gateway,
+            raw_query,
+            session_paper_ids,
+            messages=state.get("messages", []),
+            pending_user_query=state.get("pending_user_query", ""),
+            summary=state.get("summary", ""),
+            embeddings=embeddings,
+        )
+        gateway_reason = gateway_decision.reason
+
+        trace = get_trace(state.get("trace_id"))
+        if trace:
+            trace.gateway_resolution(
+                action=gateway_decision.action,
+                reason=gateway_decision.reason,
+                gate_query=gateway_decision.gate_query,
+                content_score=gateway_decision.content_score,
+                best_paper_id=gateway_decision.best_paper_id,
+                latency_ms=gateway_decision.latency_ms,
+                detail=gateway_decision.trace,
+            )
+
+        if gateway_decision.action != "continue":
+            placeholder = RetrievalIntent(
+                effective_query=raw_query,
+                intent="need_clarification",
+                missing=[],
+                confidence=0.0,
+            )
+            validated = resolve_turn(
+                placeholder,
+                raw_query,
+                session_paper_ids,
+                raw_query=raw_query,
+                scope_continue=False,
+                slot_memory=slot_memory,
+                turn_id=turn_id,
+                rewrite_reason=rewrite_reason,
+            )
+        else:
+            # Phase 3: Rewrite
+            raw_query, effective_query, rewrite_reason = rewrite_query_for_intent(state)
+
+            # Phase 4: IntentLLM（仅槽位理解）
+            include_pending = rewrite_reason != "topic_switch"
+            intent = await resolve_intent_llm(
+                state,
+                llm,
+                effective_query=effective_query,
+                include_pending=include_pending,
+            )
+            if intent.effective_query.strip() != effective_query:
+                effective_query = intent.effective_query.strip() or effective_query
+                intent.effective_query = effective_query
+            intent_confidence = intent.confidence
+
+            # Phase 5: SlotValidate
+            validated = resolve_turn(
+                intent,
+                effective_query,
+                session_paper_ids,
+                raw_query=raw_query,
+                scope_continue=True,
+                slot_memory=slot_memory,
+                turn_id=turn_id,
+                rewrite_reason=rewrite_reason,
+            )
+
+    logger.info(
+        "Turn: state=%s kind=%s mode=%s focus=%s clarify=%s direct=%s reason=%s",
+        validated.get("turn_state"),
+        validated.get("intent"),
+        validated.get("scope_mode"),
+        validated.get("focus_paper_ids"),
+        validated.get("needs_clarification"),
+        validated.get("direct_response"),
+        validated.get("match_reason"),
+    )
+    trace = get_trace(state.get("trace_id"))
+    if trace:
+        if rewrite_reason:
+            trace.query_rewrite(
+                raw_query=raw_query,
+                effective_query=validated["query"],
+                reason=rewrite_reason,
+            )
+        trace.intent_resolution(
+            intent=validated.get("intent", "paper_qa"),
+            scope_mode=validated.get("scope_mode", ""),
+            session_paper_ids=session_paper_ids,
+            focus_paper_ids=validated.get("focus_paper_ids") or [],
+            needs_clarification=validated.get("needs_clarification", False),
+            match_reason=validated.get("match_reason", ""),
+            candidate_paper_ids=validated.get("candidate_paper_ids") or [],
+            retrieval_mode=validated.get("retrieval_mode", "body"),
+            confidence=intent_confidence,
+            missing_slots=validated.get("missing_slots") or [],
+            gateway_reason=gateway_reason,
+            content_score=(
+                gateway_decision.content_score if gateway_decision else None
+            ),
+        )
+
+    out: dict = dict(validated)
+    out["turn_state"] = validated.get("turn_state", "")
+    if gateway_decision is not None:
+        out["gateway"] = {
+            "action": gateway_decision.action,
+            "reason": gateway_decision.reason,
+            "gate_query": gateway_decision.gate_query,
+            "content_score": gateway_decision.content_score,
+            "best_paper_id": gateway_decision.best_paper_id,
+        }
+    if validated.get("direct_response"):
+        out["pending_user_query"] = ""
+    elif validated.get("needs_clarification"):
+        out["pending_user_query"] = raw_query
+    elif rewrite_reason in (
+        "clarification_followup",
+        "clarification+anaphoric",
+        "topic_switch",
+    ) or not validated.get("needs_clarification"):
+        out["pending_user_query"] = ""
+    return out
+
+
+def respond_direct(state: AgentState) -> dict:
+    """非 RAG 意图：静态回复，不进入检索。"""
+    msg = state.get("answer") or ""
+    trace = get_trace(state.get("trace_id"))
+    if trace:
+        trace.clarification_response(msg)
+    return {"answer": msg, "citations": []}
+
+
+def respond_clarification(state: AgentState) -> dict:
+    """多 PDF 消歧失败：直接返回提示，不进入检索。"""
+    msg = state.get("clarification_message") or (
+        "请指明要查询的论文（paper_id 或上传文件名）。"
+    )
+    trace = get_trace(state.get("trace_id"))
+    if trace:
+        trace.clarification_response(msg)
+    return {"answer": msg, "citations": []}
+
+
+def route_after_intent(state: AgentState) -> str:
+    """resolve_intent 之后：非 RAG 直出 / 消歧 / 检索分析。"""
+    if state.get("direct_response"):
+        return "direct"
+    return "clarify" if state.get("needs_clarification") else "analyze"
 
 
 def _infer_focus_paper_id(
@@ -221,7 +560,7 @@ def _infer_focus_paper_id(
     """多 PDF 会话下，从子 Agent 检索结果推断「本题指向的一篇 paper_id」。"""
     if len(session_paper_ids) <= 1:
         return session_paper_ids[0] if session_paper_ids else None
-    if _COMPLEX_HINTS.search(query):
+    if COMPLEX_HINTS.search(query):
         return None
 
     session = set(session_paper_ids)
@@ -331,12 +670,7 @@ async def analyze_query(state: AgentState, llm: BaseChatModel) -> dict:
     失败时退化为仅使用原始 query。
     """
     query = sanitize_query(state["query"])
-    context_header = _build_context_header(state)
-
-    system_content = QUERY_ANALYZER
-    if context_header:
-        system_content += f"\n\n# Conversation Context\n{context_header}"
-    msgs = [SystemMessage(content=system_content), HumanMessage(content=query)]
+    msgs = [SystemMessage(content=QUERY_ANALYZER), HumanMessage(content=query)]
 
     structured_llm = llm.with_structured_output(QueryAnalysis)
     try:
@@ -361,57 +695,22 @@ async def analyze_query(state: AgentState, llm: BaseChatModel) -> dict:
     return {"sub_queries": sub_queries, "query_complexity": complexity}
 
 
-async def classify_query(state: AgentState, llm: BaseChatModel) -> dict:
-    """
-    查询分类：决定检索时是否按 section_type（experiment/method/background）过滤。
-    同时写入 ContextVar 供 section_type 路由使用。
-    """
-    from .tools import set_query_type
-    query = sanitize_query(state["query"])
-
-    # 摘要/abstract 题：入库 chunk 多为 section_type=other，勿用 experiment 过滤
-    if _ABSTRACT_HINTS.search(query):
-        query_type = "general"
-        set_query_type(query_type)
-        logger.info("Query classified as: %s (abstract hint override)", query_type)
-        trace = get_trace(state.get("trace_id"))
-        if trace:
-            trace.classify(query_type)
-        return {"query_type": query_type}
-
-    structured_llm = llm.with_structured_output(QueryClassification)
-    try:
-        result = await structured_llm.ainvoke([
-            SystemMessage(content=QUERY_CLASSIFIER),
-            HumanMessage(content=query),
-        ])
-        query_type = cast(QueryClassification, result).query_type
-        if query_type not in ("experimental_result", "method", "background", "general"):
-            query_type = "general"
-    except Exception:
-        query_type = "general"
-
-    set_query_type(query_type)
-    logger.info(f"Query classified as: {query_type}")
-    trace = get_trace(state.get("trace_id"))
-    if trace:
-        trace.classify(query_type)
-    return {"query_type": query_type}
-
-
 def prepare_synthesis(state: AgentState) -> dict:
     """汇总有效子答案证据，构建 synthesize 消息（过滤 insufficient / 空答案 / 硬失败）。"""
     sub_answers = _sub_answers_for_turn(state)
     valid = _collect_valid_evidence(sub_answers)
     failure_note, failed_sub_queries = _format_failed_sub_queries(sub_answers)
-    context_header = _build_context_header(state)
     session_paper_ids = state.get("paper_ids") or []
 
     pooled: list[dict] = []
     for sa in valid:
         pooled.extend(sa.get("citations") or [])
 
-    focus_paper = _infer_focus_paper_id(state["query"], valid, session_paper_ids)
+    focus_ids = state.get("focus_paper_ids") or []
+    if len(focus_ids) == 1:
+        focus_paper = focus_ids[0]
+    else:
+        focus_paper = _infer_focus_paper_id(state["query"], valid, session_paper_ids)
     focus_applied = False
     if focus_paper:
         filtered = [c for c in pooled if c.get("paper_id") == focus_paper]
@@ -457,10 +756,8 @@ def prepare_synthesis(state: AgentState) -> dict:
         focus_note=focus_note,
         failure_note=failure_note,
     )
-    if context_header:
-        system_content += f"\n\n# Conversation Context\n{context_header}"
 
-    user_lang = _query_language(state["query"])
+    user_lang = query_language(state["query"])
     lang_hint = "Respond in Chinese." if user_lang == "zh" else "Respond in English."
 
     return {
@@ -480,19 +777,118 @@ async def synthesize(state: AgentState, llm: BaseChatModel) -> dict:
     synth_messages = state.get("synth_messages", [])
     if not synth_messages:
         return {"answer": ""}
-    chunks = []
-    async for chunk in llm.astream(synth_messages):
-        if chunk.content:
-            chunks.append(chunk.content)
-    answer = "".join(chunks)
+
+    failed = state.get("failed_sub_queries") or []
+    valid = _collect_valid_evidence(_sub_answers_for_turn(state))
+    lang = query_language(state.get("query", ""))
+    if not valid:
+        if failed:
+            if lang == "zh":
+                answer = (
+                    "部分子问题检索未完成（可能超时或服务暂时不可用），"
+                    "当前没有足够的文献证据生成可靠答案。请稍后重试或缩小问题范围。"
+                )
+            else:
+                answer = (
+                    "Some sub-query retrievals did not complete; "
+                    "there is not enough evidence to produce a reliable answer. "
+                    "Please retry or narrow your question."
+                )
+        elif lang == "zh":
+            answer = "未检索到与问题相关的文献片段，请确认论文已上传或尝试更具体的问题。"
+        else:
+            answer = "No relevant passages were retrieved. Check uploads or try a more specific question."
+        trace = get_trace(state.get("trace_id"))
+        if trace:
+            trace.synthesize(answer)
+        return {"answer": answer}
+
+    async def _collect_stream() -> str:
+        chunks: list[str] = []
+        async for chunk in llm.astream(synth_messages):
+            text = message_content_to_str(chunk.content)
+            if text:
+                chunks.append(text)
+        return "".join(chunks)
+
+    try:
+        answer = await asyncio.wait_for(
+            _collect_stream(),
+            timeout=effective_timeout(float(Config.SYNTHESIZE_STEP_TIMEOUT)),
+        )
+    except asyncio.TimeoutError:
+        logger.warning("synthesize timed out after %ss", Config.SYNTHESIZE_STEP_TIMEOUT)
+        answer = _synthesis_fallback(state) or (
+            "回答生成超时，请稍后重试。"
+            if query_language(state.get("query", "")) == "zh"
+            else "Answer generation timed out; please retry."
+        )
     if is_citation_only_answer(answer):
         fallback = _synthesis_fallback(state)
         if fallback:
             logger.warning("Synthesizer returned citation-only answer; using sub-answer fallback")
             answer = fallback
+
+    final_citations = state.get("citations") or []
+    if answer and final_citations:
+        answer, stripped = sanitize_answer_citations(answer, len(final_citations))
+        if stripped:
+            logger.warning(
+                "Stripped invalid synthesis citation indices: %s (max=%d)",
+                stripped,
+                len(final_citations),
+            )
+
+    grounding_verdict = None
+    if answer and final_citations:
+        grounding_verdict = check_grounding(answer, final_citations)
+        if not grounding_verdict.ok:
+            logger.warning(
+                "Grounding check failed: reason=%s coverage=%.2f",
+                grounding_verdict.reason,
+                grounding_verdict.citation_coverage,
+            )
+            if grounding_verdict.reason in (
+                "citations_but_no_brackets",
+                "low_citation_coverage",
+                "many_invalid_citations",
+            ):
+                fallback = _synthesis_fallback(state)
+                if fallback:
+                    fallback, _ = sanitize_answer_citations(
+                        fallback, len(final_citations)
+                    )
+                    fallback_verdict = check_grounding(fallback, final_citations)
+                    if fallback_verdict.ok:
+                        logger.info(
+                            "Grounding check recovered via sub-answer fallback "
+                            "(coverage=%.2f)",
+                            fallback_verdict.citation_coverage,
+                        )
+                        answer = fallback
+                        grounding_verdict = fallback_verdict
+                if not grounding_verdict.ok:
+                    if lang == "zh":
+                        answer = (
+                            "根据检索到的证据，无法生成有足够引文支撑的回答。"
+                            "请尝试更具体的问题。"
+                        )
+                    else:
+                        answer = (
+                            "The retrieved evidence does not support a well-cited answer. "
+                            "Please try a more specific question."
+                        )
+
     trace = get_trace(state.get("trace_id"))
     if trace:
         trace.synthesize(answer)
+        if grounding_verdict is not None:
+            trace.grounding_check(
+                ok=grounding_verdict.ok,
+                citation_coverage=grounding_verdict.citation_coverage,
+                reason=grounding_verdict.reason,
+                stripped_indices=grounding_verdict.stripped_indices,
+            )
     return {"answer": answer}
 
 
@@ -536,6 +932,28 @@ async def summarize_conversation(state: AgentState, llm: BaseChatModel) -> dict:
     }
 
 
+def _boost_docs_by_query_tokens(
+    query: str,
+    docs: list[Document],
+    session_paper_ids: list[str],
+) -> list[Document]:
+    """session_wide 检索时，若 query 英文 token 唯一匹配某 paper_id，前置该论文段落。"""
+    q_tokens = {t.lower() for t in re.findall(r"[a-zA-Z][a-zA-Z0-9_\-]{2,}", query)}
+    if not q_tokens:
+        return docs
+    scores: dict[str, int] = {}
+    for pid in session_paper_ids:
+        pid_tokens = set(pid.lower().replace("-", "_").split("_"))
+        scores[pid] = len(q_tokens & pid_tokens)
+    best = max(scores.values()) if scores else 0
+    if best <= 0:
+        return docs
+    winners = [pid for pid, s in scores.items() if s == best]
+    if len(winners) != 1:
+        return docs
+    return boost_docs_for_focus_paper(docs, winners[0])
+
+
 # --------------- 子图节点（单个子查询：retrieve → generate → reflect → 可能 retry）---------------
 
 
@@ -552,47 +970,95 @@ async def retrieve(state: SubAgentState, retriever, citation_extractor) -> dict:
     入参 citation_extractor：通常是 CitationExtractor 类，用于抽 paper/章节/页码。
     """
     from rag.factory import is_visual_query  # 判断用户问题是否「明显在问图/表」
-    import asyncio  # 用于并发执行多次检索（反思重试时会有多个 query）
 
     # 当前子 Agent 要回答的这一条子问题（主图 analyze 拆分后的其中一条）
     query = sanitize_query(state["query"])
     # 若上一轮 reflect 认为答案不足，会填入补充检索词；首次检索时为空列表
     retry_queries = state.get("retry_queries", [])
-    # 主图 classify 节点写入：experimental_result / method / background / general
-    query_type = state.get("query_type", "general")
-
-    from .tools import SECTION_TYPE_ROUTE
+    retrieval_mode = state.get("retrieval_mode", "body")
 
     queries = retry_queries if retry_queries else [query]
-    if not retry_queries:
-        queries = _retrieval_query_variants(query, queries)
+    focus_paper_ids = state.get("focus_paper_ids") or []
+    if not retry_queries and retrieval_mode == "body":
+        queries = _retrieval_query_variants(
+            query, queries, focus_paper_ids=focus_paper_ids,
+        )
 
-    section_type_filter = SECTION_TYPE_ROUTE.get(query_type)
-    paper_ids = state.get("paper_ids") or []
-    paper_id_filter = paper_ids if paper_ids else None
+    node_type_filter = ["paper_profile"] if retrieval_mode == "profile" else None
+    section_type_filter = None
+    session_paper_ids = state.get("paper_ids") or []
+    focus_paper_ids = state.get("focus_paper_ids") or []
+    effective_ids = effective_retrieval_paper_ids(session_paper_ids, focus_paper_ids)
+    paper_id_filter = effective_ids if effective_ids else None
     if paper_id_filter:
-        logger.info("Retrieve scope: paper_ids=%s", paper_id_filter)
+        logger.info(
+            "Retrieve scope: paper_ids=%s (focus=%s mode=%s)",
+            paper_id_filter,
+            focus_paper_ids or "—",
+            "explicit" if focus_paper_ids else "session",
+        )
 
     def _invoke(q: str) -> list[Document]:
-        """同步检索一次（会阻塞，故下面放到线程池里跑）。"""
-        docs = retriever.invoke(
-            q,
-            section_type_filter=section_type_filter,
-            paper_id_filter=paper_id_filter,
-        )
-        if not docs and section_type_filter:
-            docs = retriever.invoke(
-                q,
-                section_type_filter=None,
-                paper_id_filter=paper_id_filter,
-            )
-        return docs
+        """同步检索一次（可重试；阻塞故放线程池）。"""
 
-    loop = asyncio.get_event_loop()  # 获取当前事件循环
-    # 对每个 query 在线程池里并行调用 _invoke（检索是 CPU/IO 混合，不宜直接阻塞 async）
-    results = await asyncio.gather(*[
-        loop.run_in_executor(None, _invoke, q) for q in queries
-    ])  # results 形如 [[doc1, doc2], [doc3], ...]，每个元素对应一个 query 的检索结果
+        def _do() -> list[Document]:
+            return retriever.invoke(
+                q,
+                section_type_filter=section_type_filter,
+                paper_id_filter=paper_id_filter,
+                node_type_filter=node_type_filter,
+            )
+
+        trace_local = get_trace(state.get("trace_id"))
+
+        def _on_retry(attempt: int, exc: BaseException) -> None:
+            if trace_local:
+                trace_local.retry_attempt(
+                    operation="retrieve",
+                    attempt=attempt,
+                    max_attempts=Config.RETRIEVE_MAX_RETRIES,
+                    error=f"{type(exc).__name__}: {exc}",
+                    sub_query=query,
+                    search_query=q,
+                )
+
+        return retry_sync(
+            _do,
+            label=f"retrieve({q[:30]!r})",
+            max_attempts=Config.RETRIEVE_MAX_RETRIES,
+            backoff_ms=_RETRIEVE_BACKOFF_MS,
+            on_retry=_on_retry,
+        )
+
+    per_query_timeout = effective_timeout(Config.RETRIEVE_STEP_TIMEOUT)
+    loop = asyncio.get_event_loop()
+
+    async def _retrieve_one(q: str) -> list[Document]:
+        async with _RETRIEVE_SEM:
+            try:
+                return await asyncio.wait_for(
+                    loop.run_in_executor(None, _invoke, q),
+                    timeout=per_query_timeout,
+                )
+            except asyncio.TimeoutError:
+                logger.warning(
+                    "Retrieve query timed out after %.0fs: %r",
+                    per_query_timeout,
+                    q[:60],
+                )
+                trace_local = get_trace(state.get("trace_id"))
+                if trace_local:
+                    trace_local.retry_attempt(
+                        operation="retrieve_step_timeout",
+                        attempt=1,
+                        max_attempts=1,
+                        error=f"query timed out after {per_query_timeout:.0f}s",
+                        sub_query=query,
+                        search_query=q,
+                    )
+                return []
+
+    results = await asyncio.gather(*[_retrieve_one(q) for q in queries])
 
     trace = get_trace(state.get("trace_id"))
     if trace:
@@ -602,6 +1068,8 @@ async def retrieve(state: SubAgentState, retriever, citation_extractor) -> dict:
                 search_queries=[q],
                 section_type_filter=section_type_filter,
                 paper_id_filter=paper_id_filter,
+                node_type_filter=node_type_filter,
+                retrieval_mode=retrieval_mode,
                 docs=batch,
             )
 
@@ -613,6 +1081,29 @@ async def retrieve(state: SubAgentState, retriever, citation_extractor) -> dict:
             if cid not in seen_ids:  # 同一 chunk 只保留一份（多 query 可能命中相同段落）
                 seen_ids.add(cid)
                 docs.append(doc)
+
+    if len(focus_paper_ids) == 1:
+        docs = boost_docs_for_focus_paper(docs, focus_paper_ids[0])
+    elif len(session_paper_ids) > 1 and not focus_paper_ids:
+        docs = _boost_docs_by_query_tokens(query, docs, session_paper_ids)
+
+    verdict = evaluate_evidence(docs, query)
+    if not verdict.passed:
+        logger.warning(
+            "Evidence gate: signal=%s top=%.3f reason=%s — treating as no evidence",
+            verdict.signal,
+            verdict.top_score,
+            verdict.reason,
+        )
+        docs = []
+    if trace:
+        trace.evidence_gate(
+            passed=verdict.passed,
+            top_score=verdict.top_score,
+            signal=verdict.signal,
+            reason=verdict.reason,
+            sub_query=query,
+        )
 
     # 从 Document 抽出引用信息（paper_id、section、page、node_type、完整 metadata）
     citations = citation_extractor.extract_all(docs) if docs else []
@@ -699,18 +1190,26 @@ async def generate(state: SubAgentState, llm: BaseChatModel, vision_service=None
     if len(context) > MAX_GENERATE_CONTEXT_CHARS:
         context = context[:MAX_GENERATE_CONTEXT_CHARS] + "\n\n[Context truncated due to length limit.]"
 
-    resp = await llm.ainvoke([
-        SystemMessage(content=GENERATOR),  # 系统提示：仅依据上下文、必须引用、学术语气等
-        HumanMessage(content=f"Context:\n{context}\n\nQuestion: {query}"),
-    ])
+    resp = await _invoke_llm_with_retry(
+        llm,
+        [
+            SystemMessage(content=GENERATOR),
+            HumanMessage(content=f"Context:\n{context}\n\nQuestion: {query}"),
+        ],
+        operation="generate",
+        sub_query=query,
+        trace_id=state.get("trace_id", ""),
+        step_timeout=float(Config.GENERATE_STEP_TIMEOUT),
+    )
 
-    answer = resp.content
+    answer = _sanitize_generate_answer(str(resp.content), context)
+    answer = _ensure_primary_citation(answer, documents, query)
     trace = get_trace(state.get("trace_id"))
     if trace:
         trace.generate(
             sub_query=query,
             context_count=len(documents),
-            answer=str(answer),
+            answer=answer,
             needs_vlm=needs_vlm,
         )
     return {"answer": answer}  # 写入 state["answer"]，供 reflect 评估
@@ -737,17 +1236,44 @@ async def reflect(state: SubAgentState, llm: BaseChatModel, vision_service=None)
         return {"is_sufficient": True, "retry_queries": [], "retries": retries + 1}
 
     if _rule_reflect_sufficient(answer):
+        trace = get_trace(state.get("trace_id"))
+        if trace:
+            trace.reflect(
+                sub_query=query,
+                is_sufficient=True,
+                retry_queries=[],
+                retries=retries + 1,
+                answer_preview=str(answer),
+                skipped_reason="rule_sufficient",
+            )
         return {"is_sufficient": True, "retry_queries": [], "retries": retries + 1}
     if _is_insufficient_answer(answer):
+        trace = get_trace(state.get("trace_id"))
+        if trace:
+            trace.reflect(
+                sub_query=query,
+                is_sufficient=True,
+                retry_queries=[],
+                retries=retries + 1,
+                answer_preview=str(answer),
+                skipped_reason="insufficient_boilerplate",
+            )
         return {"is_sufficient": True, "retry_queries": [], "retries": retries + 1}
 
     # 约束 LLM 输出为 ReflectionResult（is_sufficient + retry_queries）
     structured_llm = llm.with_structured_output(ReflectionResult)
     try:
-        result = await structured_llm.ainvoke([
-            SystemMessage(content=REFLECTOR),
-            HumanMessage(content=f"Question: {query}\nAnswer: {answer}"),
-        ])
+        result = await _invoke_llm_with_retry(
+            structured_llm,
+            [
+                SystemMessage(content=REFLECTOR),
+                HumanMessage(content=f"Question: {query}\nAnswer: {answer}"),
+            ],
+            operation="reflect",
+            sub_query=query,
+            trace_id=state.get("trace_id", ""),
+            step_timeout=float(Config.REFLECT_STEP_TIMEOUT),
+        )
         reflection = cast(ReflectionResult, result)
         is_sufficient = reflection.is_sufficient
         retry_queries = reflection.retry_queries
@@ -790,10 +1316,17 @@ async def reflect(state: SubAgentState, llm: BaseChatModel, vision_service=None)
                 enhanced_docs = list(documents) + extra_docs  # 原文档上下文 + 图分析
                 context = "\n\n".join(f"[{i}] {d}" for i, d in enumerate(enhanced_docs, 1))
                 # 在 reflect 内直接第二次生成（不再走 generate 节点）
-                resp = await llm.ainvoke([
-                    SystemMessage(content=GENERATOR),
-                    HumanMessage(content=f"Context:\n{context}\n\nQuestion: {query}"),
-                ])
+                resp = await _invoke_llm_with_retry(
+                    llm,
+                    [
+                        SystemMessage(content=GENERATOR),
+                        HumanMessage(content=f"Context:\n{context}\n\nQuestion: {query}"),
+                    ],
+                    operation="generate_vlm_fallback",
+                    sub_query=query,
+                    trace_id=state.get("trace_id", ""),
+                    step_timeout=float(Config.GENERATE_STEP_TIMEOUT),
+                )
                 vlm_answer = resp.content
                 trace = get_trace(state.get("trace_id"))
                 if trace:

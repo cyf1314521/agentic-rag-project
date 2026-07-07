@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-26T07:19:30.749372+00:00",
+  "timestamp": "2026-07-06T14:23:23.700671+00:00",
   "dataset": "eval/fixtures/scope_eval_dataset.json",
   "mode": "chunk_id",
   "settings": {
@@ -20,7 +20,8 @@
       "num_skipped": 0,
       "retrieve_options": {
         "rerank": true,
-        "expand_parent": true
+        "expand_parent": true,
+        "search_mode": "hybrid"
       },
       "paper_filter_mode": "multi_paper"
     },
@@ -34,7 +35,8 @@
       "num_skipped": 0,
       "retrieve_options": {
         "rerank": false,
-        "expand_parent": true
+        "expand_parent": true,
+        "search_mode": "hybrid"
       },
       "paper_filter_mode": "multi_paper"
     },
@@ -48,7 +50,8 @@
       "num_skipped": 0,
       "retrieve_options": {
         "rerank": true,
-        "expand_parent": false
+        "expand_parent": false,
+        "search_mode": "hybrid"
       },
       "paper_filter_mode": "multi_paper"
     },
@@ -62,7 +65,8 @@
       "num_skipped": 0,
       "retrieve_options": {
         "rerank": false,
-        "expand_parent": false
+        "expand_parent": false,
+        "search_mode": "hybrid"
       },
       "paper_filter_mode": "multi_paper"
     }
@@ -419,10 +423,8 @@
           "map": 0.3333
         }
       },
-      "scope_passed": false,
-      "scope_missing_tokens": [
-        "7.92"
-      ]
+      "scope_passed": true,
+      "scope_missing_tokens": []
     },
     {
       "id": "eval_02_ph_baseline",
@@ -772,9 +774,7 @@
           "mrr": 0.0,
           "map": 0.0
         }
-      },
-      "scope_passed": true,
-      "scope_missing_tokens": []
+      }
     },
     {
       "id": "eval_04_dice",
@@ -892,9 +892,7 @@
           "mrr": 1.0,
           "map": 0.9167
         }
-      },
-      "scope_passed": true,
-      "scope_missing_tokens": []
+      }
     },
     {
       "id": "eval_04_method",
@@ -1004,9 +1002,7 @@
           "mrr": 0.0,
           "map": 0.0
         }
-      },
-      "scope_passed": true,
-      "scope_missing_tokens": []
+      }
     },
     {
       "id": "eval_05_power",
@@ -1120,9 +1116,7 @@
           "mrr": 0.5,
           "map": 0.25
         }
-      },
-      "scope_passed": true,
-      "scope_missing_tokens": []
+      }
     },
     {
       "id": "eval_05_hours",
@@ -1232,9 +1226,7 @@
           "mrr": 0.0,
           "map": 0.0
         }
-      },
-      "scope_passed": true,
-      "scope_missing_tokens": []
+      }
     },
     {
       "id": "eval_06_f1",
@@ -1352,9 +1344,7 @@
           "mrr": 0.0,
           "map": 0.0
         }
-      },
-      "scope_passed": true,
-      "scope_missing_tokens": []
+      }
     },
     {
       "id": "eval_06_corpus",
@@ -1464,9 +1454,7 @@
           "mrr": 0.0,
           "map": 0.0
         }
-      },
-      "scope_passed": true,
-      "scope_missing_tokens": []
+      }
     },
     {
       "id": "eval_07_density",
@@ -1584,9 +1572,7 @@
           "mrr": 0.5,
           "map": 0.3333
         }
-      },
-      "scope_passed": true,
-      "scope_missing_tokens": []
+      }
     },
     {
       "id": "eval_07_cycles",
@@ -1704,9 +1690,7 @@
           "mrr": 1.0,
           "map": 1.0
         }
-      },
-      "scope_passed": true,
-      "scope_missing_tokens": []
+      }
     },
     {
       "id": "eval_08_delay",
@@ -1816,9 +1800,7 @@
           "mrr": 0.0,
           "map": 0.0
         }
-      },
-      "scope_passed": true,
-      "scope_missing_tokens": []
+      }
     },
     {
       "id": "eval_08_simulator",
@@ -1928,11 +1910,7 @@
           "mrr": 0.0,
           "map": 0.0
         }
-      },
-      "scope_passed": false,
-      "scope_missing_tokens": [
-        "SUMO"
-      ]
+      }
     },
     {
       "id": "eval_09_rmsd",
@@ -2050,9 +2028,7 @@
           "mrr": 1.0,
           "map": 0.7556
         }
-      },
-      "scope_passed": true,
-      "scope_missing_tokens": []
+      }
     },
     {
       "id": "eval_09_benchmark",
@@ -2162,9 +2138,7 @@
           "mrr": 0.0,
           "map": 0.0
         }
-      },
-      "scope_passed": true,
-      "scope_missing_tokens": []
+      }
     },
     {
       "id": "eval_10_threshold",
@@ -2274,11 +2248,7 @@
           "mrr": 0.0,
           "map": 0.0
         }
-      },
-      "scope_passed": false,
-      "scope_missing_tokens": [
-        "0.7"
-      ]
+      }
     },
     {
       "id": "eval_10_code",
@@ -2388,11 +2358,7 @@
           "mrr": 0.0,
           "map": 0.0
         }
-      },
-      "scope_passed": false,
-      "scope_missing_tokens": [
-        "表面码"
-      ]
+      }
     }
   ]
 }

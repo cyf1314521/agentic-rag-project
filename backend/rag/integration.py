@@ -744,7 +744,7 @@ class RAGIntegration:
         parents = []
         children = []
 
-        no_split_types = {"table", "figure", "section_header", "caption"}  # 这些类型整段作一块
+        no_split_types = {"table", "figure", "section_header", "caption", "paper_profile"}  # 这些类型整段作一块
 
         for doc in docs:
             chunk_parent_id = str(uuid.uuid4())  # 父块 ID，子块通过 chunk_parent_id 回溯

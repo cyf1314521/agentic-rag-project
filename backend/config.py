@@ -51,8 +51,23 @@ class Config:
     MAX_RETRIES = int(os.getenv("MAX_RETRIES", "2"))  # 子 Agent 反思不足时的最大重试次数
 
     # ---------- Agent 容错：子图超时（秒）----------
-    # 单路子图（retrieve→generate→reflect 含重试）的总预算；超时则 Fallback SubAnswer
-    SUB_AGENT_TIMEOUT = int(os.getenv("SUB_AGENT_TIMEOUT", "120"))
+    # 单路子图（retrieve→generate→reflect 含重试）的总预算；须 < REQUEST_TIMEOUT
+    SUB_AGENT_TIMEOUT = int(os.getenv("SUB_AGENT_TIMEOUT", "90"))
+
+    # ---------- Agent 容错：整请求 deadline + 单步超时（秒）----------
+    # 须 > SUB_AGENT_TIMEOUT + summarize/intent/analyze 余量（金字塔顶层）
+    REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "180"))
+    EVAL_REQUEST_TIMEOUT = int(os.getenv("EVAL_REQUEST_TIMEOUT", "300"))
+    RETRIEVE_STEP_TIMEOUT = int(os.getenv("RETRIEVE_STEP_TIMEOUT", "30"))
+    GENERATE_STEP_TIMEOUT = int(os.getenv("GENERATE_STEP_TIMEOUT", "25"))
+    REFLECT_STEP_TIMEOUT = int(os.getenv("REFLECT_STEP_TIMEOUT", "8"))
+    SYNTHESIZE_STEP_TIMEOUT = int(os.getenv("SYNTHESIZE_STEP_TIMEOUT", "30"))
+
+    # ---------- Agent 容错：有界重试 ----------
+    RETRIEVE_MAX_RETRIES = int(os.getenv("RETRIEVE_MAX_RETRIES", "3"))
+    RETRIEVE_RETRY_BACKOFF_MS = os.getenv("RETRIEVE_RETRY_BACKOFF_MS", "200,500,1000")
+    LLM_NODE_MAX_RETRIES = int(os.getenv("LLM_NODE_MAX_RETRIES", "2"))
+    LLM_NODE_RETRY_BACKOFF_MS = os.getenv("LLM_NODE_RETRY_BACKOFF_MS", "1000,3000")
 
     # ---------- 视觉语言模型 VLM（图表理解，可选）----------
     VLM_ENABLED = os.getenv("VLM_ENABLED", "false").lower() == "true"
@@ -73,6 +88,41 @@ class Config:
     # ---------- 文件上传 ----------
     UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./uploads")
     MAX_UPLOAD_SIZE_MB = int(os.getenv("MAX_UPLOAD_SIZE_MB", "50"))
+
+    # ---------- 论文画像（入库压缩，供主题/类型检索）----------
+    PAPER_PROFILE_ENABLED = os.getenv("PAPER_PROFILE_ENABLED", "true").lower() == "true"
+    PAPER_PROFILE_MAX_SOURCE_CHARS = int(os.getenv("PAPER_PROFILE_MAX_SOURCE_CHARS", "12000"))
+    PROFILE_DISCOVERY_TOP_K = int(os.getenv("PROFILE_DISCOVERY_TOP_K", "5"))
+
+    # ---------- Intent 解析 ----------
+    INTENT_CONFIDENCE_THRESHOLD = float(os.getenv("INTENT_CONFIDENCE_THRESHOLD", "0.75"))
+    # 检索后置信度门：CrossEncoder 重排 top1 低于此值视为「与论文关联度低」
+    RETRIEVAL_MIN_RERANK_SCORE = float(os.getenv("RETRIEVAL_MIN_RERANK_SCORE", "0.15"))
+
+    # ---------- Corpus Gate（前置网关，不查 Milvus）----------
+    CONTENT_GATE_ENABLED = os.getenv("CONTENT_GATE_ENABLED", "true").lower() == "true"
+    CONTENT_GATE_MODE = os.getenv("CONTENT_GATE_MODE", "hybrid")  # hybrid | embedding | bm25
+    CONTENT_GATE_MIN_SCORE = float(os.getenv("CONTENT_GATE_MIN_SCORE", "0.15"))
+    CONTENT_GATE_HIGH_SCORE = float(os.getenv("CONTENT_GATE_HIGH_SCORE", "0.25"))
+    CONTENT_GATE_USE_PREV_TURN = os.getenv("CONTENT_GATE_USE_PREV_TURN", "true").lower() == "true"
+    CONTENT_GATE_EMB_WEIGHT = float(os.getenv("CONTENT_GATE_EMB_WEIGHT", "0.75"))
+    CONTENT_GATE_BM25_WEIGHT = float(os.getenv("CONTENT_GATE_BM25_WEIGHT", "0.25"))
+    TASK_OFF_DOMAIN_ENABLED = os.getenv("TASK_OFF_DOMAIN_ENABLED", "true").lower() == "true"
+    TASK_OVERRIDE_MIN_SCORE = float(os.getenv("TASK_OVERRIDE_MIN_SCORE", "0.35"))
+
+    # ---------- Evidence gate ----------
+    RETRIEVAL_MIN_FALLBACK_SCORE = float(os.getenv("RETRIEVAL_MIN_FALLBACK_SCORE", "0.08"))
+
+    # ---------- Slot inheritance ----------
+    SLOT_INHERITANCE_ENABLED = os.getenv("SLOT_INHERITANCE_ENABLED", "true").lower() == "true"
+
+    # ---------- Compliance gate ----------
+    COMPLIANCE_GATE_ENABLED = os.getenv("COMPLIANCE_GATE_ENABLED", "false").lower() == "true"
+    COMPLIANCE_DENYLIST_PATH = os.getenv("COMPLIANCE_DENYLIST_PATH", "./data/compliance/denylist.txt")
+
+    # ---------- Grounding check ----------
+    GROUNDING_CHECK_ENABLED = os.getenv("GROUNDING_CHECK_ENABLED", "true").lower() == "true"
+    GROUNDING_MIN_CITATION_RATIO = float(os.getenv("GROUNDING_MIN_CITATION_RATIO", "0.2"))
 
     # ---------- HTTP 服务监听 ----------
     HOST = os.getenv("HOST", "0.0.0.0")

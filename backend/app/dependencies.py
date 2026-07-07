@@ -115,7 +115,13 @@ class RetrieverTool:
     def __init__(self, retriever: Retriever):
         self._retriever = retriever
 
-    def invoke(self, query: str, section_type_filter=None, paper_id_filter=None):
+    def invoke(
+        self,
+        query: str,
+        section_type_filter=None,
+        paper_id_filter=None,
+        node_type_filter=None,
+    ):
         """执行一次完整检索管道，返回 Document 列表。"""
         return self._retriever.retrieve(
             query=query,
@@ -127,6 +133,7 @@ class RetrieverTool:
             fetch_k=Config.FETCH_K,
             section_type_filter=section_type_filter,
             paper_id_filter=paper_id_filter,
+            node_type_filter=node_type_filter,
         )
 
 
@@ -211,6 +218,14 @@ async def lifespan(app: FastAPI):
     pool = AsyncConnectionPool(Config.POSTGRES_URI, min_size=2, max_size=10, open=False)
     await pool.open()
     await init_store(cast(Any, pool))
+
+    if Config.REQUEST_TIMEOUT <= Config.SUB_AGENT_TIMEOUT:
+        logger.warning(
+            "Timeout pyramid misconfigured: REQUEST_TIMEOUT (%ss) should be > SUB_AGENT_TIMEOUT (%ss). "
+            "See .env.example (recommended: 180 / 90).",
+            Config.REQUEST_TIMEOUT,
+            Config.SUB_AGENT_TIMEOUT,
+        )
 
     _llm = _build_llm()
 

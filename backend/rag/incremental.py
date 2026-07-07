@@ -73,3 +73,21 @@ class IncrementalUpdater:
             return True
         except Exception:
             return False
+
+    def append_documents(
+        self,
+        parents: List[Document],
+        children: List[Document],
+    ) -> bool:
+        """增量追加向量（后台 paper_profile 等场景，不删除已有正文块）。"""
+        if not parents and not children:
+            return True
+        self._ensure_connections()
+        try:
+            if parents:
+                self.parent_store.add_documents(parents)
+            if children:
+                self.child_store.add_documents(children)
+            return True
+        except Exception:
+            return False

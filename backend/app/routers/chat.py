@@ -2,13 +2,14 @@
 聊天 API：基于 SSE 的流式多智能体问答。
 
 事件类型（JSON 行，前端 api.js 解析）：
-  session_id → turn_id → status → sub_queries → sub_agent_status →
+  session_id → turn_id → status → clarification? → sub_queries → sub_agent_status →
   warnings → answer（增量）→ citations → done | error
 """
 
 import json
 import uuid
 import logging
+import asyncio
 from typing import AsyncGenerator
 
 from fastapi import APIRouter
@@ -22,8 +23,8 @@ from app.store import create_session, get_session, update_session, get_session_p
 from agent.graph import build_graph
 from agent.nodes import sanitize_query
 from agent.states import fresh_turn_state
-from agent.resilience import is_failed_sub_answer
-from rag.citation import CitationExtractor
+from agent.resilience import is_failed_sub_answer, set_request_deadline, clear_request_deadline
+from rag.citation import CitationExtractor, sanitize_answer_citations
 from rag.chat_trace import start_trace, finish_trace, get_trace
 
 logger = logging.getLogger(__name__)
@@ -60,39 +61,127 @@ async def _stream_response(graph, query: str, session_id: str) -> AsyncGenerator
     paper_ids = await get_session_paper_ids(session_id)
     if paper_ids:
         logger.info("Session scope: %d paper(s) %s", len(paper_ids), paper_ids)
-        if len(paper_ids) > 1:
-            logger.warning(
-                "Session %s links %d papers — answers may mix corpora. "
-                "For single-paper Q&A, create a new chat and upload one PDF.",
-                session_id,
-                len(paper_ids),
-            )
     else:
-        logger.warning(
-            "Session %s has no linked papers — retrieval uses full corpus. "
-            "Upload PDFs in this chat to enable scope.",
+        logger.info(
+            "Session %s has no linked papers — only non-RAG replies until upload.",
             session_id,
         )
     turn_id = uuid.uuid4().hex[:16]
     graph_input = fresh_turn_state(query, trace_id, paper_ids=paper_ids, turn_id=turn_id)
     start_trace(session_id, query, trace_id=trace_id)
+    set_request_deadline(float(Config.REQUEST_TIMEOUT))
 
     yield json.dumps({"type": "session_id", "data": session_id})
     yield json.dumps({"type": "turn_id", "data": turn_id})
     yield json.dumps({"type": "status", "data": "analyzing"})
 
-    try:
-        final_citations = []
-        final_answer = ""
-        answer_buf = ""
-        failed_sub_queries: list[dict] = []
-        partial_failure = False
+    final_citations: list = []
+    final_answer = ""
+    answer_buf = ""
+    failed_sub_queries: list[dict] = []
+    partial_failure = False
+    needs_clarification = False
+    direct_response = False
+    checkpoint_saved = False
 
+    async def _persist_turn(answer_text: str) -> None:
+        nonlocal checkpoint_saved
+        if checkpoint_saved:
+            return
+        await graph.aupdate_state(config, {
+            "messages": [
+                HumanMessage(content=query),
+                AIMessage(
+                    content=answer_text,
+                    additional_kwargs={
+                        "citations": final_citations,
+                        "turn_id": turn_id,
+                        "partial_failure": partial_failure,
+                        "failed_sub_queries": failed_sub_queries,
+                    },
+                ),
+            ],
+            "answer": answer_text,
+            "turn_id": turn_id,
+            "failed_sub_queries": failed_sub_queries,
+        })
+        checkpoint_saved = True
+
+    try:
         async for chunk in graph.astream(graph_input, config=config, stream_mode=["updates", "messages"]):
             stream_type, data = chunk
 
             if stream_type == "updates":
                 for node_name, node_output in data.items():
+                    if node_output is None:
+                        continue
+                    gateway_fields = {}
+                    gw = node_output.get("gateway") or {}
+                    if gw.get("content_score") is not None:
+                        gateway_fields["content_score"] = gw["content_score"]
+                    if gw.get("reason"):
+                        gateway_fields["gateway_reason"] = gw["reason"]
+
+                    if node_name == "compliance_gate" and node_output.get("compliance_blocked"):
+                        direct_response = True
+                        yield json.dumps({
+                            "type": "intent",
+                            "data": {
+                                "intent": node_output.get("intent", "out_of_domain"),
+                                "focus_paper_ids": [],
+                                "retrieval_mode": "none",
+                                "direct_response": True,
+                                "compliance_blocked": True,
+                                "turn_state": node_output.get("turn_state", "out_of_scope"),
+                            },
+                        })
+                        yield json.dumps({"type": "status", "data": "direct"})
+
+                    if node_name == "resolve_intent":
+                        if node_output.get("direct_response"):
+                            direct_response = True
+                            yield json.dumps({
+                                "type": "intent",
+                                "data": {
+                                    "intent": node_output.get("intent"),
+                                    "focus_paper_ids": [],
+                                    "retrieval_mode": "none",
+                                    "direct_response": True,
+                                    "turn_state": node_output.get("turn_state", "out_of_scope"),
+                                    **gateway_fields,
+                                },
+                            })
+                            yield json.dumps({"type": "status", "data": "direct"})
+                        elif node_output.get("needs_clarification"):
+                            needs_clarification = True
+                            yield json.dumps({
+                                "type": "clarification",
+                                "data": {
+                                    "paper_ids": paper_ids,
+                                    "candidates": node_output.get("candidate_paper_ids") or paper_ids,
+                                    "scope_mode": node_output.get("scope_mode", "ambiguous"),
+                                    "intent": node_output.get("intent", ""),
+                                },
+                            })
+                            yield json.dumps({"type": "status", "data": "clarification"})
+                        elif node_output.get("intent"):
+                            yield json.dumps({
+                                "type": "intent",
+                                "data": {
+                                    "intent": node_output.get("intent"),
+                                    "focus_paper_ids": node_output.get("focus_paper_ids") or [],
+                                    "retrieval_mode": node_output.get("retrieval_mode", "body"),
+                                    "turn_state": node_output.get("turn_state", "rag_ready"),
+                                    **gateway_fields,
+                                },
+                            })
+
+                    if node_name in ("clarify", "respond_direct"):
+                        direct_msg = node_output.get("answer", "")
+                        if direct_msg:
+                            answer_buf = direct_msg
+                            yield json.dumps({"type": "answer", "data": direct_msg})
+
                     # 查询分解完成 → 通知前端展示子查询并切换状态
                     if node_name == "analyze":
                         sq = node_output.get("sub_queries", [])
@@ -134,6 +223,13 @@ async def _stream_response(graph, query: str, session_id: str) -> AsyncGenerator
                             len(failed_sub_queries),
                         )
 
+                    # synthesize 走子答案直出时不会触发 LLM token 流，需从节点输出取 answer
+                    if node_name == "synthesize":
+                        synth_answer = node_output.get("answer", "") or ""
+                        if synth_answer:
+                            answer_buf = synth_answer
+                            yield json.dumps({"type": "answer", "data": answer_buf})
+
             elif stream_type == "messages":
                 msg, metadata = data
                 if metadata.get("langgraph_node") == "synthesize" and hasattr(msg, "content") and msg.content:
@@ -142,27 +238,22 @@ async def _stream_response(graph, query: str, session_id: str) -> AsyncGenerator
 
         final_answer = answer_buf
 
+        if final_answer and final_citations:
+            final_answer, stripped = sanitize_answer_citations(
+                final_answer, len(final_citations),
+            )
+            if stripped:
+                logger.warning(
+                    "Chat stream stripped invalid citation indices: %s",
+                    stripped,
+                )
+                yield json.dumps({"type": "answer", "data": final_answer})
+
         if not final_answer:
             yield json.dumps({"type": "answer", "data": ""})
 
-        # 流结束后写入 checkpoint：用户问 + 助手答（含 citations / partial 元数据）
-        await graph.aupdate_state(config, {
-            "messages": [
-                HumanMessage(content=query),
-                AIMessage(
-                    content=final_answer,
-                    additional_kwargs={
-                        "citations": final_citations,
-                        "turn_id": turn_id,
-                        "partial_failure": partial_failure,
-                        "failed_sub_queries": failed_sub_queries,
-                    },
-                ),
-            ],
-            "answer": final_answer,
-            "turn_id": turn_id,
-            "failed_sub_queries": failed_sub_queries,
-        })
+        await _persist_turn(final_answer)
+        checkpoint_saved = True
 
         yield json.dumps({"type": "citations", "data": final_citations})
 
@@ -174,9 +265,25 @@ async def _stream_response(graph, query: str, session_id: str) -> AsyncGenerator
 
         yield json.dumps({
             "type": "done",
-            "data": {"partial": partial_failure, "failed_count": len(failed_sub_queries)},
+            "data": {
+                "partial": partial_failure,
+                "failed_count": len(failed_sub_queries),
+                "needs_clarification": needs_clarification,
+                "direct_response": direct_response,
+            },
         })
 
+    except asyncio.CancelledError:
+        logger.warning("Chat stream cancelled (client disconnect) session=%s", session_id)
+        if answer_buf.strip() and not checkpoint_saved:
+            try:
+                clean = answer_buf
+                if final_citations:
+                    clean, _ = sanitize_answer_citations(clean, len(final_citations))
+                await _persist_turn(clean)
+            except Exception:
+                logger.exception("Failed to persist partial answer on disconnect")
+        raise
     except Exception as e:
         logger.exception("Chat error")
         tr = get_trace(trace_id)
@@ -184,6 +291,7 @@ async def _stream_response(graph, query: str, session_id: str) -> AsyncGenerator
             tr.error(str(e))
         yield json.dumps({"type": "error", "data": str(e)})
     finally:
+        clear_request_deadline()
         finish_trace(trace_id)
 
 

@@ -41,6 +41,46 @@ def is_citation_only_answer(text: str) -> bool:
     return len(without_cites) < 12
 
 
+def sanitize_answer_citations(
+    answer: str,
+    max_index: int,
+) -> tuple[str, list[int]]:
+    """
+    剥离合成答案中超出 Citation Index 范围的 [n]（防小模型引用漂移）。
+
+    Returns:
+        (cleaned_answer, stripped_invalid_indices)
+    """
+    if not answer or max_index <= 0:
+        stripped = parse_citation_indices(answer)
+        if stripped:
+            return re.sub(r"\[\d+(?:,\s*\d+)*\]", "", answer).strip(), stripped
+        return answer, []
+
+    stripped: list[int] = []
+
+    def _replace(m: re.Match[str]) -> str:
+        valid: list[str] = []
+        for part in re.split(r"[,，\s]+", m.group(1).strip()):
+            if not part.isdigit():
+                continue
+            n = int(part)
+            if 1 <= n <= max_index:
+                valid.append(str(n))
+            else:
+                stripped.append(n)
+        if not valid:
+            return ""
+        if len(valid) == 1:
+            return f"[{valid[0]}]"
+        return "[" + ", ".join(valid) + "]"
+
+    cleaned = re.sub(r"\[([^\]]+)\]", _replace, answer)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned)
+    cleaned = re.sub(r"\s+([,.;，。；])", r"\1", cleaned)
+    return cleaned.strip(), stripped
+
+
 def paper_ids_from_citations(answer: str, citations: list[dict]) -> list[str]:
     """答案 [n] 对应 citations[n-1] 的 paper_id（去重排序）。"""
     paper_ids: set[str] = set()

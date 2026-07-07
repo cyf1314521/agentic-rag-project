@@ -134,6 +134,33 @@ def save_parse_artifact(recorder: ParseRecorder, nodes: list[PaperNode]) -> Path
     return out_path
 
 
+def load_paper_nodes_from_artifact(path: str | Path) -> list[PaperNode]:
+    """从解析 JSON 还原 PaperNode（排除 paper_profile，供后台画像任务使用）。"""
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    paper_id = data.get("meta", {}).get("paper_id", "")
+    nodes: list[PaperNode] = []
+    for n in data.get("nodes", []):
+        if n.get("node_type") == "paper_profile":
+            continue
+        bbox = tuple(n["bbox"]) if n.get("bbox") else None
+        nodes.append(
+            PaperNode(
+                node_id=n["node_id"],
+                paper_id=paper_id,
+                node_type=n["node_type"],
+                text=n.get("text", ""),
+                page_num=int(n.get("page_num", 0)),
+                order=int(n.get("order", 0)),
+                section_path=list(n.get("section_path") or []),
+                bbox=bbox,
+                image_path=n.get("image_path"),
+                related_ids=list(n.get("related_ids") or []),
+                metadata=dict(n.get("metadata") or {}),
+            )
+        )
+    return nodes
+
+
 def delete_parse_artifact(paper_id: str, file_id: Optional[str] = None) -> None:
     """删除论文解析记录目录或单个 file 的 JSON。"""
     base = Path(Config.PARSE_ARTIFACT_DIR) / paper_id

@@ -1,7 +1,7 @@
 """
 LangGraph 多智能体图组装。
 
-主图：summarize → classify → analyze → [Send 并行 sub_agent，条数由 complexity 限制] → prepare_synthesis → synthesize
+主图：summarize → compliance_gate → resolve_intent → respond_direct | clarify | analyze → [Send 并行 sub_agent] → prepare_synthesis → synthesize
 子图（每个 sub_query 一份）：retrieve → generate → reflect → (retry | END)
 """
 
@@ -17,10 +17,15 @@ from .states import AgentState, SubAgentState
 from .resilience import invoke_with_timeout, make_failed_sub_answer, make_sub_answer
 from .nodes import (
     analyze_query,
-    classify_query,
     prepare_synthesis,
     synthesize,
     summarize_conversation,
+    resolve_intent_node,
+    compliance_gate_node,
+    respond_clarification,
+    respond_direct,
+    route_after_intent,
+    route_after_compliance,
     retrieve,
     generate,
     reflect,
@@ -97,7 +102,7 @@ def build_graph(
 
     Args:
         llm: 主语言模型
-        retriever: RetrieverTool 或兼容 invoke(query, section_type_filter) 的对象
+        retriever: RetrieverTool 或兼容 invoke(query, paper_id_filter, node_type_filter) 的对象
         citation_extractor: 引用提取类（通常为 CitationExtractor）
         max_retries: 子 Agent 反思重试上限
         checkpointer: Postgres/Memory saver，用于多轮 thread 状态
@@ -106,14 +111,16 @@ def build_graph(
     def dispatch(state: AgentState):
         """analyze 之后：为每个 sub_query 创建一个 Send，并行执行 sub_agent。"""
         tid = state.get("trace_id", "")
-        qtype = state.get("query_type", "general")
-        paper_ids = state.get("paper_ids") or []
+        retrieval_mode = state.get("retrieval_mode", "body")
+        session_paper_ids = state.get("paper_ids") or []
+        focus_paper_ids = state.get("focus_paper_ids") or []
         return [
             Send("sub_agent", {
                 "query": q,
-                "query_type": qtype,
                 "trace_id": tid,
-                "paper_ids": paper_ids,
+                "retrieval_mode": retrieval_mode,
+                "paper_ids": session_paper_ids,
+                "focus_paper_ids": focus_paper_ids,
             })
             for q in state["sub_queries"]
         ]
@@ -130,8 +137,9 @@ def build_graph(
         sub_input = {
             "query": sub_query,
             "trace_id": state.get("trace_id", ""),
-            "query_type": state.get("query_type", "general"),
+            "retrieval_mode": state.get("retrieval_mode", "body"),
             "paper_ids": state.get("paper_ids") or [],
+            "focus_paper_ids": state.get("focus_paper_ids") or [],
             "documents": [],
             "answer": "",
             "citations": [],
@@ -154,6 +162,12 @@ def build_graph(
                 trace.sub_agent_failed(sub_query=sub_query, error=err)
             return {"sub_answers": [make_failed_sub_answer(sub_query, err)]}
 
+        if result is None:
+            empty_msg = "sub_agent returned empty result"
+            if trace:
+                trace.sub_agent_failed(sub_query=sub_query, error=empty_msg)
+            return {"sub_answers": [make_failed_sub_answer(sub_query, empty_msg)]}
+
         if trace:
             trace.sub_agent_done(
                 sub_query=result.get("query", sub_query),
@@ -166,8 +180,8 @@ def build_graph(
     async def summarize_node(state: AgentState) -> dict:
         return await summarize_conversation(state, llm=llm)
 
-    async def classify_node(state: AgentState) -> dict:
-        return await classify_query(state, llm=llm)
+    async def resolve_intent_node_wrapped(state: AgentState) -> dict:
+        return await resolve_intent_node(state, llm=llm, retriever=retriever)
 
     async def analyze_node(state: AgentState) -> dict:
         return await analyze_query(state, llm=llm)
@@ -177,16 +191,33 @@ def build_graph(
     async def synthesize_node(state: AgentState) -> dict:
         return await synthesize(state, llm=llm)
 
+    async def compliance_node(state: AgentState) -> dict:
+        return await compliance_gate_node(state)
+
     graph.add_node("summarize", summarize_node)
-    graph.add_node("classify", classify_node)
+    graph.add_node("compliance_gate", compliance_node)
+    graph.add_node("resolve_intent", resolve_intent_node_wrapped)
+    graph.add_node("clarify", respond_clarification)
+    graph.add_node("respond_direct", respond_direct)
     graph.add_node("analyze", analyze_node)
     graph.add_node("sub_agent", sub_agent_node)  # type: ignore[arg-type]
     graph.add_node("prepare_synthesis", prepare_synthesis)
     graph.add_node("synthesize", synthesize_node)
 
     graph.add_edge(START, "summarize")
-    graph.add_edge("summarize", "classify")
-    graph.add_edge("classify", "analyze")
+    graph.add_edge("summarize", "compliance_gate")
+    graph.add_conditional_edges(
+        "compliance_gate",
+        route_after_compliance,
+        {"direct": "respond_direct", "intent": "resolve_intent"},
+    )
+    graph.add_conditional_edges(
+        "resolve_intent",
+        route_after_intent,
+        {"direct": "respond_direct", "clarify": "clarify", "analyze": "analyze"},
+    )
+    graph.add_edge("respond_direct", END)
+    graph.add_edge("clarify", END)
     graph.add_conditional_edges("analyze", dispatch, ["sub_agent"])
     graph.add_edge("sub_agent", "prepare_synthesis")
     graph.add_edge("prepare_synthesis", "synthesize")

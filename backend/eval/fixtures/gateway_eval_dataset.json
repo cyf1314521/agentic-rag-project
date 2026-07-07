@@ -1,0 +1,41 @@
+{
+  "version": "1",
+  "description": "Gateway-only eval: turn_state + gateway_reason without full RAG answer check.",
+  "cases": [
+    {
+      "id": "gate_bitcoin_on_blockchain",
+      "session_papers": ["eval_03_blockchain_scm"],
+      "query": "比特币的共识机制是什么",
+      "expect": {
+        "turn_state": "rag_ready",
+        "gateway_reason_prefix": "content"
+      }
+    },
+    {
+      "id": "gate_bitcoin_price_on_wind",
+      "session_papers": ["eval_05_wind_turbine"],
+      "query": "比特币今天币价多少",
+      "expect": {
+        "turn_state": "out_of_scope",
+        "gateway_reason": "task_off_domain"
+      }
+    },
+    {
+      "id": "gate_meta_hello",
+      "session_papers": ["eval_03_blockchain_scm"],
+      "query": "你好",
+      "expect": {
+        "turn_state": "out_of_scope",
+        "gateway_reason": "meta"
+      }
+    },
+    {
+      "id": "gate_stock_on_wind",
+      "session_papers": ["eval_05_wind_turbine"],
+      "query": "今天股价多少",
+      "expect": {
+        "turn_state": "out_of_scope"
+      }
+    }
+  ]
+}

@@ -15,7 +15,8 @@ NodeType = Literal[
     "table",
     "figure",
     "caption",
-    "formula"
+    "formula",
+    "paper_profile",
 ]
 
 

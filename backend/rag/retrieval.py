@@ -260,7 +260,33 @@ class Retriever:
             key=lambda item: item[1],
             reverse=True,
         )
-        return [doc for doc, _ in ranked[:top_k]]
+        out: list[Document] = []
+        for doc, score in ranked[:top_k]:
+            meta = dict(doc.metadata or {})
+            meta["rerank_score"] = score
+            out.append(
+                Document(page_content=doc.page_content, metadata=meta)
+            )
+        return out
+
+    def _child_scores_by_parent(self, children: list[Document]) -> dict[str, dict[str, float]]:
+        """按父 chunk_id 聚合子块上的最佳检索分数（供父块扩展后 evidence_gate 使用）。"""
+        out: dict[str, dict[str, float]] = {}
+        for doc in children:
+            pid = doc.metadata.get("chunk_parent_id")
+            if not pid:
+                continue
+            meta = doc.metadata or {}
+            bucket = out.setdefault(str(pid), {})
+            for key in ("rerank_score", "score", "sparse_score"):
+                if meta.get(key) is None:
+                    continue
+                try:
+                    score = float(meta[key])
+                except (TypeError, ValueError):
+                    continue
+                bucket[key] = max(bucket.get(key, score), score)
+        return out
 
     def _expand_to_parents(self, children: list[Document]) -> list[Document]:
         """子块命中后按 chunk_parent_id 拉取父 collection 中的完整语义单元。"""
@@ -276,13 +302,21 @@ class Retriever:
         if not parent_ids:  # 子块元数据里没有父 id，无法扩展
             return children  # 原样返回子块列表
 
-        parents = []  # 从父 collection 查到的 Document
+        child_scores = self._child_scores_by_parent(children)
+        parents: list[Document] = []
         for pid in parent_ids:  # 逐个父 chunk_id 查询
             try:
                 expr = f'chunk_id == "{pid}"'  # 在父库中用标量字段 chunk_id 精确匹配
                 # 查询文本用 "dummy" 即可：主要靠 expr 过滤，向量相似度在此不重要
                 hits = self._parent_store.similarity_search("dummy", k=1, expr=expr)
-                parents.extend(hits)  # 将命中的父块追加到列表
+                for hit in hits:
+                    meta = dict(hit.metadata or {})
+                    for key, score in child_scores.get(str(pid), {}).items():
+                        if meta.get(key) is None:
+                            meta[key] = score
+                    parents.append(
+                        Document(page_content=hit.page_content, metadata=meta)
+                    )
             except Exception as e:  # 单条父块查询失败不中断整个流程
                 logger.error(f"Failed to fetch parent {pid}: {e}")
 
